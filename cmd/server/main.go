@@ -43,7 +43,7 @@ func isValidURL(url string) bool {
 }
 
 func isNameMissing(url string) bool {
-	re := regexp.MustCompile(`^/update/(counter|gauge)/\d+(?:\.\d+){0,1}$`)
+	re := regexp.MustCompile(`^/update/(counter|gauge)/(\d+(?:\.\d+){0,1}){0,1}$`)
 	return re.MatchString(url)
 }
 
@@ -64,10 +64,6 @@ func isValidParams(r *http.Request, w *http.ResponseWriter) ([]string, bool) {
 		http.Error(*w, "Invalid method", http.StatusMethodNotAllowed)
 		return nil, false
 	}
-	if !isValidURL(p) {
-		http.Error(*w, "Invalid query", http.StatusBadRequest)
-		return nil, false
-	}
 	if isNameMissing(p) {
 		http.Error(*w, "Missing name of metric", http.StatusNotFound)
 		return nil, false
@@ -80,6 +76,11 @@ func isValidParams(r *http.Request, w *http.ResponseWriter) ([]string, bool) {
 
 	if !isValidType(metricType) || !isValidValue(metricValue) {
 		http.Error(*w, "Invalid type or value", http.StatusBadRequest)
+		return nil, false
+	}
+	// full regexp for check all path
+	if !isValidURL(p) {
+		http.Error(*w, "Invalid query", http.StatusBadRequest)
 		return nil, false
 	}
 
