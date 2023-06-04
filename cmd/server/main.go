@@ -69,10 +69,10 @@ func isValidParams(p string, w http.ResponseWriter) ([]string, bool) {
 
 	params := strings.Split(p, "/")
 
-	metric_type := params[2]
-	metric_value := params[4]
+	metricType := params[2]
+	metricValue := params[4]
 
-	if !isValidType(metric_type) || !isValidValue(metric_value) {
+	if !isValidType(metricType) || !isValidValue(metricValue) {
 		http.Error(w, "Invalid type or value", http.StatusBadRequest)
 		return nil, false
 	}
@@ -96,19 +96,19 @@ func mainHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metric_type := params[2]
-	metric_name := params[3]
-	metric_value := params[4]
+	metricType := params[2]
+	metricName := params[3]
+	metricValue := params[4]
 
 	body := fmt.Sprintf("Method: %s\r\n", r.Method)
 	body += "Params ===============\r\n"
-	body += fmt.Sprintf("%s: %v\r\n", "metric_type", metric_type)
-	body += fmt.Sprintf("%s: %v\r\n", "metric_name", metric_name)
-	body += fmt.Sprintf("%s: %v\r\n", "metric_value", metric_value)
+	body += fmt.Sprintf("%s: %v\r\n", "metricType", metricType)
+	body += fmt.Sprintf("%s: %v\r\n", "metricName", metricName)
+	body += fmt.Sprintf("%s: %v\r\n", "metricValue", metricValue)
 
 	io.WriteString(w, body)
 
-	err := Storage.Update(metric_type, metric_name, metric_value)
+	err := Storage.Update(metricType, metricName, metricValue)
 	if err != nil {
 		panic(err)
 	}
