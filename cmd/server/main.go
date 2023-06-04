@@ -57,13 +57,19 @@ func isValidValue(v string) bool {
 	return re.MatchString(v)
 }
 
-func isValidParams(p string, w http.ResponseWriter) ([]string, bool) {
+func isValidParams(r *http.Request, w *http.ResponseWriter) ([]string, bool) {
+	p := r.URL.Path
+
+	if r.Method != http.MethodPost {
+		http.Error(*w, "Invalid method", http.StatusMethodNotAllowed)
+		return nil, false
+	}
 	if !isValidURL(p) {
-		http.Error(w, "Invalid query", http.StatusBadRequest)
+		http.Error(*w, "Invalid query", http.StatusBadRequest)
 		return nil, false
 	}
 	if isNameMissing(p) {
-		http.Error(w, "Missing name of metric", http.StatusNotFound)
+		http.Error(*w, "Missing name of metric", http.StatusNotFound)
 		return nil, false
 	}
 
@@ -73,24 +79,16 @@ func isValidParams(p string, w http.ResponseWriter) ([]string, bool) {
 	metricValue := params[4]
 
 	if !isValidType(metricType) || !isValidValue(metricValue) {
-		http.Error(w, "Invalid type or value", http.StatusBadRequest)
+		http.Error(*w, "Invalid type or value", http.StatusBadRequest)
 		return nil, false
 	}
 
 	return params, true
 }
 
-// func validateQuery(next http.Handler) http.Handler {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		checkParams(r.URL.Path, w)
-// 		next.ServeHTTP(w, r)
-// 	})
-// }
-
 func mainHandle(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "Start handling\r\n")
 
-	params, isValid := isValidParams(r.URL.Path, w)
+	params, isValid := isValidParams(r, &w)
 
 	if !isValid {
 		return
