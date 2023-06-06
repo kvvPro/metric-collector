@@ -87,10 +87,17 @@ func (cli *Client) updateMetric(metric Metric) error {
 }
 
 func (cli *Client) Run() {
-	for i := 0; i < 1; i++ {
-		cli.ReadMetrics()
-		cli.PushMetrics()
+	timefromReport := 0
 
-		time.Sleep(time.Duration(cli.reportInterval) * time.Second)
+	for {
+		if timefromReport >= cli.reportInterval {
+			timefromReport = 0
+			cli.PushMetrics()
+		}
+
+		cli.ReadMetrics()
+
+		time.Sleep(time.Duration(cli.pollInterval) * time.Second)
+		timefromReport += cli.pollInterval
 	}
 }
