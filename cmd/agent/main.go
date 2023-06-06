@@ -1,11 +1,14 @@
 package main
 
 import (
-	"runtime"
-	"runtime/metrics"
+	"metric-collector/cmd/agent/client"
 )
 
 func main() {
-	metrics.All()
-	runtime.ReadMemStats(&runtime.MemStats{})
+	agent, err := client.NewClient(2, 10, "http://localhost", "8080", "text/plain")
+	if err != nil {
+		panic(err)
+	}
+
+	agent.Run()
 }
