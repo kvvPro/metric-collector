@@ -18,6 +18,6 @@ func main() {
 
 	errs := http.ListenAndServe(":"+srv.Port, mux)
 	if errs != nil {
-		panic(err)
+		panic(errs)
 	}
 }
