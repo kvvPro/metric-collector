@@ -26,15 +26,15 @@ func isValidValue(v string) bool {
 	return re.MatchString(v)
 }
 
-func isValidParams(r *http.Request, w *http.ResponseWriter) ([]string, bool) {
+func isValidParams(r *http.Request, w http.ResponseWriter) ([]string, bool) {
 	p := r.URL.Path
 
 	if r.Method != http.MethodPost {
-		http.Error(*w, "Invalid method", http.StatusMethodNotAllowed)
+		http.Error(w, "Invalid method", http.StatusMethodNotAllowed)
 		return nil, false
 	}
 	if isNameMissing(p) {
-		http.Error(*w, "Missing name of metric", http.StatusNotFound)
+		http.Error(w, "Missing name of metric", http.StatusNotFound)
 		return nil, false
 	}
 
@@ -44,12 +44,12 @@ func isValidParams(r *http.Request, w *http.ResponseWriter) ([]string, bool) {
 	metricValue := params[4]
 
 	if !isValidType(metricType) || !isValidValue(metricValue) {
-		http.Error(*w, "Invalid type or value", http.StatusBadRequest)
+		http.Error(w, "Invalid type or value", http.StatusBadRequest)
 		return nil, false
 	}
 	// full regexp for check all path
 	if !isValidURL(p) {
-		http.Error(*w, "Invalid query", http.StatusBadRequest)
+		http.Error(w, "Invalid query", http.StatusBadRequest)
 		return nil, false
 	}
 
