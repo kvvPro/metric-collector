@@ -21,7 +21,7 @@ func NewMemStorage() MemStorage {
 
 func (s *MemStorage) Update(t string, n string, v string) error {
 	if t == storage.MetricTypeGauge {
-		if fval, err := strconv.ParseFloat(v, 32); err == nil {
+		if fval, err := strconv.ParseFloat(v, 64); err == nil {
 			s.Gauges[n] = fval
 		}
 	} else if t == storage.MetricTypeCounter {
