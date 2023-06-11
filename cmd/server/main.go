@@ -14,7 +14,9 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/", http.HandlerFunc(srv.MainHandle))
+	mux.Handle("/update/", http.HandlerFunc(srv.UpdateHandle))
+	mux.Handle("/value/", http.HandlerFunc(srv.GetValueHandle))
+	mux.Handle("/", http.HandlerFunc(srv.AllMetricsHandle))
 
 	errs := http.ListenAndServe(":"+srv.Port, mux)
 	if errs != nil {

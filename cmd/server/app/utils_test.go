@@ -141,7 +141,7 @@ func Test_isValidValue(t *testing.T) {
 	}
 }
 
-func Test_isValidParams(t *testing.T) {
+func Test_isValidUpdateParams(t *testing.T) {
 	tests := []struct {
 		name string
 		url  string
@@ -185,12 +185,12 @@ func Test_isValidParams(t *testing.T) {
 			// создаём новый Recorder
 			writer := httptest.NewRecorder()
 
-			res, got := isValidParams(request, writer)
+			res, got := isValidUpdateParams(request, writer)
 			if !reflect.DeepEqual(res, tt.res) {
-				t.Errorf("isValidParams() got = %v, want %v", res, tt.res)
+				t.Errorf("isValidUpdateParams() got = %v, want %v", res, tt.res)
 			}
 			if got != tt.want {
-				t.Errorf("isValidParams() got1 = %v, want %v", got, tt.want)
+				t.Errorf("isValidUpdateParams() got1 = %v, want %v", got, tt.want)
 			}
 		})
 	}

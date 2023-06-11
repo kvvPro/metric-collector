@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestServer_MainHandle(t *testing.T) {
+func TestServer_UpdateHandle(t *testing.T) {
 	type fields struct {
 		storage storage.Storage
 		Port    string
@@ -72,7 +72,7 @@ func TestServer_MainHandle(t *testing.T) {
 				// создаём новый Recorder
 				w := httptest.NewRecorder()
 
-				srv.MainHandle(w, request)
+				srv.UpdateHandle(w, request)
 
 				res := w.Result()
 				// проверяем код ответа
@@ -85,6 +85,60 @@ func TestServer_MainHandle(t *testing.T) {
 				assert.Equal(t, string(resBody), req.response)
 				assert.Equal(t, res.Header.Get("Content-Type"), req.contentType)
 			}
+		})
+	}
+}
+
+func TestServer_GetValueHandle(t *testing.T) {
+	type fields struct {
+		storage storage.Storage
+		Port    string
+	}
+	type args struct {
+		w http.ResponseWriter
+		r *http.Request
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := &Server{
+				storage: tt.fields.storage,
+				Port:    tt.fields.Port,
+			}
+			srv.GetValueHandle(tt.args.w, tt.args.r)
+		})
+	}
+}
+
+func TestServer_AllMetricsHandle(t *testing.T) {
+	type fields struct {
+		storage storage.Storage
+		Port    string
+	}
+	type args struct {
+		w http.ResponseWriter
+		r *http.Request
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := &Server{
+				storage: tt.fields.storage,
+				Port:    tt.fields.Port,
+			}
+			srv.AllMetricsHandle(tt.args.w, tt.args.r)
 		})
 	}
 }

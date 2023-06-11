@@ -7,8 +7,13 @@ import (
 )
 
 func isValidURL(url string) bool {
+	// update
 	re := regexp.MustCompile(`^/update/(counter|gauge)/\w+/\d+(?:\.\d+){0,1}$`)
-	return re.MatchString(url)
+	// get value
+	reget := regexp.MustCompile(`^/value/(counter|gauge)/\w+$`)
+	// get all metrics
+	reall := regexp.MustCompile(`^/$`)
+	return re.MatchString(url) || reget.MatchString(url) || reall.MatchString(url)
 }
 
 func isNameMissing(url string) bool {
@@ -26,7 +31,7 @@ func isValidValue(v string) bool {
 	return re.MatchString(v)
 }
 
-func isValidParams(r *http.Request, w http.ResponseWriter) ([]string, bool) {
+func isValidUpdateParams(r *http.Request, w http.ResponseWriter) ([]string, bool) {
 	p := r.URL.Path
 
 	if r.Method != http.MethodPost {
@@ -50,6 +55,31 @@ func isValidParams(r *http.Request, w http.ResponseWriter) ([]string, bool) {
 	// full regexp for check all path
 	if !isValidURL(p) {
 		http.Error(w, "Invalid query", http.StatusBadRequest)
+		return nil, false
+	}
+
+	return params, true
+}
+
+func isValidGetValueParams(r *http.Request, w http.ResponseWriter) ([]string, bool) {
+	p := r.URL.Path
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Invalid method", http.StatusMethodNotAllowed)
+		return nil, false
+	}
+	// full regexp for check all path
+	if !isValidURL(p) {
+		http.Error(w, "Invalid query", http.StatusBadRequest)
+		return nil, false
+	}
+
+	params := strings.Split(p, "/")
+
+	metricType := params[2]
+
+	if !isValidType(metricType) {
+		http.Error(w, "Invalid type", http.StatusBadRequest)
 		return nil, false
 	}
 

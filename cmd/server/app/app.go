@@ -23,3 +23,13 @@ func (srv *Server) AddMetric(metricType string, metricName string, metricValue s
 	}
 	return nil
 }
+
+func (srv *Server) GetMetricValue(metricType string, metricName string) (any, error) {
+	val, err := srv.storage.GetValue(metricType, metricName)
+	return val, err
+}
+
+func (srv *Server) GetAllMetrics() []st.Metric {
+	val := srv.storage.GetAllMetrics()
+	return val
+}
