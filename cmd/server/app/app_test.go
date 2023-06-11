@@ -95,3 +95,64 @@ func TestNewServer(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_GetMetricValue(t *testing.T) {
+	type fields struct {
+		storage st.Storage
+		Port    string
+	}
+	type args struct {
+		metricType string
+		metricName string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    any
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := &Server{
+				storage: tt.fields.storage,
+				Port:    tt.fields.Port,
+			}
+			got, err := srv.GetMetricValue(tt.args.metricType, tt.args.metricName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Server.GetMetricValue() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Server.GetMetricValue() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestServer_GetAllMetrics(t *testing.T) {
+	type fields struct {
+		storage st.Storage
+		Port    string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []st.Metric
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := &Server{
+				storage: tt.fields.storage,
+				Port:    tt.fields.Port,
+			}
+			if got := srv.GetAllMetrics(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Server.GetAllMetrics() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

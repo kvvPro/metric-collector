@@ -45,6 +45,12 @@ func (srv *Server) GetValueHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *Server) AllMetricsHandle(w http.ResponseWriter, r *http.Request) {
+	p := r.URL.Path
+	if !isValidURL(p) {
+		http.Error(w, "Invalid query", http.StatusBadRequest)
+		return
+	}
+
 	if r.Method != http.MethodGet {
 		http.Error(w, "Invalid method", http.StatusMethodNotAllowed)
 		return
