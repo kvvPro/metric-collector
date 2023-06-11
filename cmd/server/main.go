@@ -4,6 +4,8 @@ import (
 	app "metric-collector/cmd/server/app"
 	store "metric-collector/internal/storage/memstorage"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func main() {
@@ -13,12 +15,12 @@ func main() {
 		panic(err)
 	}
 
-	mux := http.NewServeMux()
-	mux.Handle("/update/", http.HandlerFunc(srv.UpdateHandle))
-	mux.Handle("/value/", http.HandlerFunc(srv.GetValueHandle))
-	mux.Handle("/", http.HandlerFunc(srv.AllMetricsHandle))
+	r := chi.NewMux()
+	r.Handle("/update/*", http.HandlerFunc(srv.UpdateHandle))
+	r.Handle("/value/*", http.HandlerFunc(srv.GetValueHandle))
+	r.Handle("/", http.HandlerFunc(srv.AllMetricsHandle))
 
-	errs := http.ListenAndServe(":"+srv.Port, mux)
+	errs := http.ListenAndServe(":"+srv.Port, r)
 	if errs != nil {
 		panic(errs)
 	}
