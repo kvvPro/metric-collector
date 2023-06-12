@@ -6,10 +6,11 @@ import (
 )
 
 type ClientFlags struct {
+	Address        string `env:"ADDRESS"`
 	Host           string
 	Port           string
-	ReportInterval int
-	PollInterval   int
+	ReportInterval int `env:"REPORT_INTERVAL"`
+	PollInterval   int `env:"POLL_INTERVAL"`
 }
 
 func (flags *ClientFlags) SetAddr(s string) error {

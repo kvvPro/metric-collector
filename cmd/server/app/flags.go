@@ -6,8 +6,9 @@ import (
 )
 
 type ServerFlags struct {
-	Host string
-	Port string
+	Address string `env:"ADDRESS"`
+	Host    string
+	Port    string
 }
 
 func (flags *ServerFlags) String() string {
