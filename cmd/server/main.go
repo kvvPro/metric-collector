@@ -6,11 +6,22 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/spf13/pflag"
 )
 
 func main() {
+	// flags
+	addr := new(app.ServerFlags)
+	faddr := ""
+	pflag.StringVarP(&faddr, "addr", "a", "localhost:8080", "Net address host:port")
+	pflag.Parse()
+	err := addr.Set(faddr)
+	if err != nil {
+		panic(err)
+	}
+
 	storage := store.NewMemStorage()
-	srv, err := app.NewServer(&storage, "8080")
+	srv, err := app.NewServer(&storage, addr.Host, addr.Port)
 	if err != nil {
 		panic(err)
 	}
@@ -20,7 +31,7 @@ func main() {
 	r.Handle("/value/*", http.HandlerFunc(srv.GetValueHandle))
 	r.Handle("/", http.HandlerFunc(srv.AllMetricsHandle))
 
-	errs := http.ListenAndServe(":"+srv.Port, r)
+	errs := http.ListenAndServe(srv.Host+":"+srv.Port, r)
 	if errs != nil {
 		panic(errs)
 	}

@@ -55,6 +55,7 @@ func TestServer_AddMetric(t *testing.T) {
 func TestNewServer(t *testing.T) {
 	type args struct {
 		store st.Storage
+		host  string
 		port  string
 	}
 	tests := []struct {
@@ -70,6 +71,7 @@ func TestNewServer(t *testing.T) {
 					Gauges:   make(map[string]float64),
 					Counters: make(map[string]int64),
 				},
+				host: "localhost",
 				port: "8080",
 			},
 			want: &Server{
@@ -77,6 +79,7 @@ func TestNewServer(t *testing.T) {
 					Gauges:   make(map[string]float64),
 					Counters: make(map[string]int64),
 				},
+				Host: "localhost",
 				Port: "8080",
 			},
 			wantErr: false,
@@ -84,7 +87,7 @@ func TestNewServer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewServer(tt.args.store, tt.args.port)
+			got, err := NewServer(tt.args.store, tt.args.host, tt.args.port)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewServer() error = %v, wantErr %v", err, tt.wantErr)
 				return

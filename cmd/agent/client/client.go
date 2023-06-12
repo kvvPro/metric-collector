@@ -66,7 +66,8 @@ func (cli *Client) updateMetric(metric Metric) error {
 	metricType := metric.GetTypeForQuery()
 	metricName := metric.GetName()
 	metricValue := metric.GetValue()
-	url := cli.host + ":" + cli.port + "/update/" + metricType + "/" + metricName + "/" + fmt.Sprintf("%v", metricValue)
+	url := "http://" + cli.host + ":" + cli.port + "/update/" +
+		metricType + "/" + metricName + "/" + fmt.Sprintf("%v", metricValue)
 
 	var body []byte
 	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))

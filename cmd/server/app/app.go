@@ -6,12 +6,14 @@ import (
 
 type Server struct {
 	storage st.Storage
+	Host    string
 	Port    string
 }
 
-func NewServer(store st.Storage, port string) (*Server, error) {
+func NewServer(store st.Storage, host string, port string) (*Server, error) {
 	return &Server{
 		storage: store,
+		Host:    host,
 		Port:    port,
 	}, nil
 }
