@@ -42,11 +42,13 @@ func initialize() app.ServerFlags {
 	if addr.Address == "" {
 		pflag.StringVarP(&addr.Address, "addr", "a", "localhost:8080", "Net address host:port")
 		pflag.Parse()
-		err := addr.Set(addr.Address)
-		if err != nil {
-			panic(err)
-		}
 	}
+
+	err := addr.Set(addr.Address)
+	if err != nil {
+		panic(err)
+	}
+
 	fmt.Println("\nFLAGS-----------")
 	fmt.Printf("ADDRESS=%v", addr.Address)
 

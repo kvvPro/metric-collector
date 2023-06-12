@@ -28,7 +28,7 @@ func initialize() client.ClientFlags {
 	}
 	fmt.Println("ENV-----------")
 	fmt.Printf("ADDRESS=%v", agentFlags.Address)
-	fmt.Printf("\nEPORT_INTERVAL=%v", agentFlags.ReportInterval)
+	fmt.Printf("\nREPORT_INTERVAL=%v", agentFlags.ReportInterval)
 	fmt.Printf("\nPOLL_INTERVAL=%v", agentFlags.PollInterval)
 	// try to get vars from Flags
 	if agentFlags.Address == "" {
