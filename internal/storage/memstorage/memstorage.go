@@ -2,9 +2,10 @@ package memstorage
 
 import (
 	"errors"
-	"metric-collector/internal/metrics"
-	"metric-collector/internal/storage"
 	"strconv"
+
+	"github.com/kvvPro/metric-collector/internal/metrics"
+	"github.com/kvvPro/metric-collector/internal/storage"
 )
 
 type MemStorage struct {

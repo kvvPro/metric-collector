@@ -1,10 +1,11 @@
 package app
 
 import (
-	st "metric-collector/internal/storage"
-	"metric-collector/internal/storage/memstorage"
 	"reflect"
 	"testing"
+
+	st "github.com/kvvPro/metric-collector/internal/storage"
+	"github.com/kvvPro/metric-collector/internal/storage/memstorage"
 )
 
 func TestServer_AddMetric(t *testing.T) {
@@ -87,11 +88,7 @@ func TestNewServer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewServer(tt.args.store, tt.args.host, tt.args.port)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewServer() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			got := NewServer(tt.args.store, tt.args.host, tt.args.port)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewServer() = %v, want %v", got, tt.want)
 			}

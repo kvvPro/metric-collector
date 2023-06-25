@@ -2,11 +2,12 @@ package app
 
 import (
 	"io"
-	"metric-collector/internal/storage"
-	"metric-collector/internal/storage/memstorage"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/kvvPro/metric-collector/internal/storage"
+	"github.com/kvvPro/metric-collector/internal/storage/memstorage"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

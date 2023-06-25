@@ -1,56 +1,45 @@
 package main
 
 import (
-	"fmt"
-	app "metric-collector/cmd/server/app"
-	store "metric-collector/internal/storage/memstorage"
 	"net/http"
 
-	"github.com/caarlos0/env/v8"
+	app "github.com/kvvPro/metric-collector/cmd/server/app"
+	"github.com/kvvPro/metric-collector/cmd/server/config"
+	store "github.com/kvvPro/metric-collector/internal/storage/memstorage"
+
 	"github.com/go-chi/chi/v5"
-	"github.com/spf13/pflag"
+	"go.uber.org/zap"
 )
 
 func main() {
-	addr := initialize()
-	storage := store.NewMemStorage()
-	srv, err := app.NewServer(&storage, addr.Host, addr.Port)
+	logger, err := zap.NewDevelopment()
 	if err != nil {
+		// вызываем панику, если ошибка
 		panic(err)
 	}
+	defer logger.Sync()
+
+	// делаем регистратор SugaredLogger
+	app.Sugar = *logger.Sugar()
+
+	addr := config.Initialize()
+	storage := store.NewMemStorage()
+	srv := app.NewServer(&storage, addr.Host, addr.Port)
 
 	r := chi.NewMux()
+	r.Use(app.WithLogging)
 	r.Handle("/update/*", http.HandlerFunc(srv.UpdateHandle))
 	r.Handle("/value/*", http.HandlerFunc(srv.GetValueHandle))
 	r.Handle("/", http.HandlerFunc(srv.AllMetricsHandle))
 
-	errs := http.ListenAndServe(srv.Host+":"+srv.Port, r)
-	if errs != nil {
-		panic(errs)
-	}
-}
+	// записываем в лог, что сервер запускается
+	app.Sugar.Infow(
+		"Starting server",
+		"addr", addr,
+	)
 
-func initialize() app.ServerFlags {
-	// try to get vars from env
-	addr := new(app.ServerFlags)
-	if err := env.Parse(addr); err != nil {
-		panic(err)
+	if err := http.ListenAndServe(srv.Host+":"+srv.Port, r); err != nil {
+		// записываем в лог ошибку, если сервер не запустился
+		app.Sugar.Fatalw(err.Error(), "event", "start server")
 	}
-	fmt.Println("ENV-----------")
-	fmt.Printf("ADDRESS=%v", addr.Address)
-	// try to get vars from Flags
-	if addr.Address == "" {
-		pflag.StringVarP(&addr.Address, "addr", "a", "localhost:8080", "Net address host:port")
-		pflag.Parse()
-	}
-
-	err := addr.Set(addr.Address)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("\nFLAGS-----------")
-	fmt.Printf("ADDRESS=%v", addr.Address)
-
-	return *addr
 }

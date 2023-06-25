@@ -1,7 +1,7 @@
 package app
 
 import (
-	st "metric-collector/internal/storage"
+	st "github.com/kvvPro/metric-collector/internal/storage"
 )
 
 type Server struct {
@@ -10,12 +10,12 @@ type Server struct {
 	Port    string
 }
 
-func NewServer(store st.Storage, host string, port string) (*Server, error) {
+func NewServer(store st.Storage, host string, port string) *Server {
 	return &Server{
 		storage: store,
 		Host:    host,
 		Port:    port,
-	}, nil
+	}
 }
 
 func (srv *Server) AddMetric(metricType string, metricName string, metricValue string) error {

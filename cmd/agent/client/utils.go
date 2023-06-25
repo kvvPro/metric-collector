@@ -1,8 +1,9 @@
 package client
 
 import (
-	"metric-collector/internal/metrics"
 	"reflect"
+
+	"github.com/kvvPro/metric-collector/internal/metrics"
 )
 
 func DeepFields(iface interface{}) []Metric {
@@ -31,18 +32,20 @@ func DeepFields(iface interface{}) []Metric {
 }
 
 func NewMetric(mname string, mtype string, ival reflect.Value) Metric {
-	if mtype == "float64" {
+	switch mtype {
+	case "float64":
 		val := ival.Float()
 		c := metrics.NewGauge(mname, mtype, val)
 		return c
-	} else if mtype == "uint64" {
+	case "uint64":
 		val := ival.Uint()
 		c := metrics.NewCounter(mname, mtype, int64(val))
 		return c
-	} else if mtype == "int64" {
+	case "int64":
 		val := ival.Int()
 		c := metrics.NewCounter(mname, mtype, val)
 		return c
+	default:
+		return nil
 	}
-	return nil
 }
