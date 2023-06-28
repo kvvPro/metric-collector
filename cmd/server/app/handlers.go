@@ -100,6 +100,8 @@ func (srv *Server) UpdateJSONHandle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+
 	updatedMetrics := srv.GetAllMetrics()
 	bodyBuffer := new(bytes.Buffer)
 	json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
@@ -120,6 +122,8 @@ func (srv *Server) GetValueJSONHandle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Requested metrics (one or more) not found", http.StatusNotFound)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
 
 	bodyBuffer := new(bytes.Buffer)
 	json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
