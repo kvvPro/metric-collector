@@ -67,11 +67,12 @@ func isValidUpdateJSONParams(r *http.Request, w http.ResponseWriter) ([]metrics.
 		panic(err)
 	}
 	reader := io.NopCloser(bytes.NewReader(data))
+	reader2 := io.NopCloser(bytes.NewReader(data))
 
 	// 1 - try parse to array
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := json.NewDecoder(reader).Decode(&body); err != nil {
 		// 2 - try parse to  1 Metric
-		if err := json.NewDecoder(reader).Decode(&oneMetric); err != nil {
+		if err := json.NewDecoder(reader2).Decode(&oneMetric); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return nil, false
 		}
@@ -79,17 +80,17 @@ func isValidUpdateJSONParams(r *http.Request, w http.ResponseWriter) ([]metrics.
 		body = append(body, oneMetric)
 	}
 
-	for _, m := range body {
-		if m.ID == "" {
-			http.Error(w, "Missing name of metric", http.StatusNotFound)
-			return nil, false
-		}
+	// for _, m := range body {
+	// 	if m.ID == "" {
+	// 		http.Error(w, "Missing name of metric", http.StatusNotFound)
+	// 		return nil, false
+	// 	}
 
-		if !isValidType(m.MType) || m.Delta == nil && m.Value == nil {
-			http.Error(w, "Invalid type or value", http.StatusBadRequest)
-			return nil, false
-		}
-	}
+	// 	if !isValidType(m.MType) || m.Delta == nil && m.Value == nil {
+	// 		http.Error(w, "Invalid type or value", http.StatusBadRequest)
+	// 		return nil, false
+	// 	}
+	// }
 
 	// full regexp for check all path
 	if !isValidURLJSON(p) {
@@ -116,11 +117,12 @@ func isValidGetValueJSONParams(r *http.Request, w http.ResponseWriter) ([]metric
 		panic(err)
 	}
 	reader := io.NopCloser(bytes.NewReader(data))
+	reader2 := io.NopCloser(bytes.NewReader(data))
 
 	// 1 - try parse to array
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := json.NewDecoder(reader).Decode(&body); err != nil {
 		// 2 - try parse to  1 Metric
-		if err := json.NewDecoder(reader).Decode(&oneMetric); err != nil {
+		if err := json.NewDecoder(reader2).Decode(&oneMetric); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return nil, false
 		}
@@ -128,17 +130,17 @@ func isValidGetValueJSONParams(r *http.Request, w http.ResponseWriter) ([]metric
 		body = append(body, oneMetric)
 	}
 
-	for _, m := range body {
-		if m.ID == "" {
-			http.Error(w, "Missing name of metric", http.StatusNotFound)
-			return nil, false
-		}
+	// for _, m := range body {
+	// 	if m.ID == "" {
+	// 		http.Error(w, "Missing name of metric", http.StatusNotFound)
+	// 		return nil, false
+	// 	}
 
-		if !isValidType(m.MType) {
-			http.Error(w, "Invalid type", http.StatusBadRequest)
-			return nil, false
-		}
-	}
+	// 	if !isValidType(m.MType) {
+	// 		http.Error(w, "Invalid type", http.StatusBadRequest)
+	// 		return nil, false
+	// 	}
+	// }
 
 	// full regexp for check all path
 	if !isValidURLJSON(p) {
