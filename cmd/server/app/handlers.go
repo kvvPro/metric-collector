@@ -1,6 +1,8 @@
 package app
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -81,6 +83,48 @@ func (srv *Server) UpdateHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body := "OK!"
+	io.WriteString(w, body)
+	w.WriteHeader(http.StatusOK)
+}
+
+func (srv *Server) UpdateJSONHandle(w http.ResponseWriter, r *http.Request) {
+	allMetrics, isValid := isValidUpdateJSONParams(r, w)
+	if !isValid {
+		return
+	}
+
+	for _, m := range allMetrics {
+		err := srv.AddMetricNew(m)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	updatedMetrics := srv.GetAllMetrics()
+	bodyBuffer := new(bytes.Buffer)
+	json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
+	body := bodyBuffer.String()
+
+	io.WriteString(w, body)
+	w.WriteHeader(http.StatusOK)
+}
+
+func (srv *Server) GetValueJSONHandle(w http.ResponseWriter, r *http.Request) {
+	requestedMetrics, isValid := isValidGetValueJSONParams(r, w)
+	if !isValid {
+		return
+	}
+
+	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
+	if len(requestedMetrics) != len(updatedMetrics) {
+		http.Error(w, "Requested metrics (one or more) not found", http.StatusNotFound)
+		return
+	}
+
+	bodyBuffer := new(bytes.Buffer)
+	json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
+	body := bodyBuffer.String()
+
 	io.WriteString(w, body)
 	w.WriteHeader(http.StatusOK)
 }

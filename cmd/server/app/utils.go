@@ -1,10 +1,20 @@
 package app
 
 import (
+	"encoding/json"
 	"net/http"
 	"regexp"
 	"strings"
+
+	"github.com/kvvPro/metric-collector/internal/metrics"
 )
+
+type IMetric interface {
+	GetName() string
+	GetType() string
+	GetValue() any
+	GetTypeForQuery() string
+}
 
 func isValidURL(url string) bool {
 	// update
@@ -14,6 +24,14 @@ func isValidURL(url string) bool {
 	// get all metrics
 	reall := regexp.MustCompile(`^/$`)
 	return re.MatchString(url) || reget.MatchString(url) || reall.MatchString(url)
+}
+
+func isValidURLJSON(url string) bool {
+	// update
+	re := regexp.MustCompile(`^/update/$`)
+	// get value
+	reget := regexp.MustCompile(`^/value/$`)
+	return re.MatchString(url) || reget.MatchString(url)
 }
 
 func isNameMissing(url string) bool {
@@ -29,6 +47,78 @@ func isValidType(t string) bool {
 func isValidValue(v string) bool {
 	re := regexp.MustCompile(`^\d+(?:\.\d+){0,1}$`)
 	return re.MatchString(v)
+}
+
+func isValidUpdateJSONParams(r *http.Request, w http.ResponseWriter) ([]metrics.Metric, bool) {
+	p := r.URL.Path
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid method", http.StatusMethodNotAllowed)
+		return nil, false
+	}
+	// read body
+	var body []metrics.Metric
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return nil, false
+	}
+
+	for _, m := range body {
+		if m.ID == "" {
+			http.Error(w, "Missing name of metric", http.StatusNotFound)
+			return nil, false
+		}
+
+		if !isValidType(m.MType) || m.Delta == nil && m.Value == nil {
+			http.Error(w, "Invalid type or value", http.StatusBadRequest)
+			return nil, false
+		}
+	}
+
+	// full regexp for check all path
+	if !isValidURLJSON(p) {
+		http.Error(w, "Invalid query", http.StatusBadRequest)
+		return nil, false
+	}
+
+	return body, true
+}
+
+func isValidGetValueJSONParams(r *http.Request, w http.ResponseWriter) ([]metrics.Metric, bool) {
+	p := r.URL.Path
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid method", http.StatusMethodNotAllowed)
+		return nil, false
+	}
+	// read body
+	var body []metrics.Metric
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return nil, false
+	}
+
+	for _, m := range body {
+		if m.ID == "" {
+			http.Error(w, "Missing name of metric", http.StatusNotFound)
+			return nil, false
+		}
+
+		if !isValidType(m.MType) {
+			http.Error(w, "Invalid type", http.StatusBadRequest)
+			return nil, false
+		}
+	}
+
+	// full regexp for check all path
+	if !isValidURLJSON(p) {
+		http.Error(w, "Invalid query", http.StatusBadRequest)
+		return nil, false
+	}
+
+	return body, true
 }
 
 func isValidUpdateParams(r *http.Request, w http.ResponseWriter) ([]string, bool) {

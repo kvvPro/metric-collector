@@ -2,11 +2,14 @@ package client
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"runtime"
 	"time"
+
+	"github.com/kvvPro/metric-collector/internal/metrics"
 )
 
 type Agent interface {
@@ -14,7 +17,7 @@ type Agent interface {
 	PushMetrics()
 }
 
-type Metric interface {
+type IMetric interface {
 	GetName() string
 	GetType() string
 	GetValue() any
@@ -60,7 +63,38 @@ func (cli *Client) PushMetrics() {
 	}
 }
 
-func (cli *Client) updateMetric(metric Metric) error {
+func (cli *Client) PushMetricsJSON() {
+	mslice := DeepFieldsNew(cli.Metrics)
+
+	cli.updateMetricsJSON(mslice)
+}
+
+func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
+	client := &http.Client{}
+	url := "http://" + cli.host + ":" + cli.port + "/update/"
+
+	bodyBuffer := new(bytes.Buffer)
+	json.NewEncoder(bodyBuffer).Encode(allMetrics)
+
+	request, err := http.NewRequest(http.MethodPost, url, bodyBuffer)
+	if err != nil {
+		panic(err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := client.Do(request)
+	if err != nil {
+		panic(err)
+	}
+
+	_, serr := io.Copy(io.Discard, response.Body)
+	response.Body.Close()
+	if serr != nil {
+		panic(serr)
+	}
+	return nil
+}
+
+func (cli *Client) updateMetric(metric IMetric) error {
 	client := &http.Client{}
 	// metric := m.(Metric)
 	metricType := metric.GetTypeForQuery()
@@ -93,7 +127,8 @@ func (cli *Client) Run() {
 	for {
 		if timefromReport >= cli.reportInterval {
 			timefromReport = 0
-			cli.PushMetrics()
+			// cli.PushMetrics()
+			cli.PushMetricsJSON()
 		}
 
 		cli.ReadMetrics()

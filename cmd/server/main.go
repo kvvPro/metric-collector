@@ -28,8 +28,10 @@ func main() {
 
 	r := chi.NewMux()
 	r.Use(app.WithLogging)
+	r.Handle("/update/", http.HandlerFunc(srv.UpdateJSONHandle))
 	r.Handle("/update/*", http.HandlerFunc(srv.UpdateHandle))
 	r.Handle("/value/*", http.HandlerFunc(srv.GetValueHandle))
+	r.Handle("/value/", http.HandlerFunc(srv.GetValueJSONHandle))
 	r.Handle("/", http.HandlerFunc(srv.AllMetricsHandle))
 
 	// записываем в лог, что сервер запускается

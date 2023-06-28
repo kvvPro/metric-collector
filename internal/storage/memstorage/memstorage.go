@@ -21,14 +21,25 @@ func NewMemStorage() MemStorage {
 }
 
 func (s *MemStorage) Update(t string, n string, v string) error {
-	if t == storage.MetricTypeGauge {
+	if t == metrics.MetricTypeGauge {
 		if fval, err := strconv.ParseFloat(v, 64); err == nil {
 			s.Gauges[n] = fval
 		}
-	} else if t == storage.MetricTypeCounter {
+	} else if t == metrics.MetricTypeCounter {
 		if ival, err := strconv.ParseInt(v, 10, 64); err == nil {
 			s.Counters[n] += ival
 		}
+	} else {
+		return errors.New("uknown metric type")
+	}
+	return nil
+}
+
+func (s *MemStorage) UpdateNew(t string, n string, delta *int64, value *float64) error {
+	if t == metrics.MetricTypeGauge {
+		s.Gauges[n] = *value
+	} else if t == metrics.MetricTypeCounter {
+		s.Counters[n] += *delta
 	} else {
 		return errors.New("uknown metric type")
 	}
@@ -39,9 +50,9 @@ func (s *MemStorage) GetValue(t string, n string) (any, error) {
 	var val any
 	var exists bool
 
-	if t == storage.MetricTypeGauge {
+	if t == metrics.MetricTypeGauge {
 		val, exists = s.Gauges[n]
-	} else if t == storage.MetricTypeCounter {
+	} else if t == metrics.MetricTypeCounter {
 		val, exists = s.Counters[n]
 	} else {
 		return nil, errors.New("uknown metric type")

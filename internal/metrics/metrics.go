@@ -5,16 +5,32 @@ const (
 	MetricTypeGauge   = "gauge"
 )
 
+type Metric struct {
+	ID    string   `json:"id"`              // имя метрики
+	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+}
+
 type Counter struct {
-	Name  string
-	Type  string
-	Value int64
+	Name  string `json:"id"`
+	Type  string `json:"type"`
+	Value int64  `json:"delta,omitempty"`
 }
 
 type Gauge struct {
-	Name  string
-	Type  string
-	Value float64
+	Name  string  `json:"id"`
+	Type  string  `json:"type"`
+	Value float64 `json:"value,omitempty"`
+}
+
+func NewCommonMetric(mname string, mtype string, delta *int64, value *float64) *Metric {
+	return &Metric{
+		ID:    mname,
+		MType: mtype,
+		Delta: delta,
+		Value: value,
+	}
 }
 
 func NewCounter(mname string, mtype string, mint int64) *Counter {

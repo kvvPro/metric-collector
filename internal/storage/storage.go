@@ -9,6 +9,7 @@ type Metric interface {
 
 type Storage interface {
 	Update(t string, n string, v string) error
+	UpdateNew(t string, n string, delta *int64, value *float64) error
 	GetValue(t string, n string) (any, error)
 	GetAllMetrics() []Metric
 }

@@ -140,7 +140,7 @@ func TestClient_updateMetric(t *testing.T) {
 		contentType    string
 	}
 	type args struct {
-		metric Metric
+		metric IMetric
 	}
 	tests := []struct {
 		name    string
