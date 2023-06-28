@@ -1,7 +1,9 @@
 package app
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -93,11 +95,24 @@ func isValidGetValueJSONParams(r *http.Request, w http.ResponseWriter) ([]metric
 		return nil, false
 	}
 	// read body
+	var oneMetric metrics.Metric
 	var body []metrics.Metric
 
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	reader := io.NopCloser(bytes.NewReader(data))
+
+	// 1 - try parse to array
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return nil, false
+		// 2 - try parse to  1 Metric
+		if err := json.NewDecoder(reader).Decode(&oneMetric); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return nil, false
+		}
+		// it's one Metric
+		body = append(body, oneMetric)
 	}
 
 	for _, m := range body {
