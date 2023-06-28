@@ -42,26 +42,28 @@ func (srv *Server) GetMetricValue(metricType string, metricName string) (any, er
 
 func (srv *Server) GetRequestedValues(m []metrics.Metric) []metrics.Metric {
 	slice := srv.GetAllMetrics()
-	hash := make(map[string]metrics.Metric, 0)
+	hash := make(map[string]*metrics.Metric, 0)
 
 	for _, el := range m {
-		hash[el.ID] = el
+		hash[el.ID] = &el
 	}
 
-	result := make([]metrics.Metric, 0)
-
 	for _, el := range slice {
-		if val, isExist := hash[el.GetName()]; isExist {
+		if _, isExist := hash[el.GetName()]; isExist {
 			if el.GetTypeForQuery() == metrics.MetricTypeGauge {
 				newValue := el.GetValue().(float64)
-				val.Value = &newValue
+				(hash[el.GetName()]).Value = &newValue
 			}
 			if el.GetTypeForQuery() == metrics.MetricTypeCounter {
 				newValue := el.GetValue().(int64)
-				val.Delta = &newValue
+				(hash[el.GetName()]).Delta = &newValue
 			}
-			result = append(result, val)
 		}
+	}
+
+	result := make([]metrics.Metric, 0)
+	for _, el := range hash {
+		result = append(result, *el)
 	}
 	return result
 }

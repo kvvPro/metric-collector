@@ -88,12 +88,12 @@ func (srv *Server) UpdateHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *Server) UpdateJSONHandle(w http.ResponseWriter, r *http.Request) {
-	allMetrics, isValid := isValidUpdateJSONParams(r, w)
+	requestedMetrics, isValid := isValidUpdateJSONParams(r, w)
 	if !isValid {
 		return
 	}
 
-	for _, m := range allMetrics {
+	for _, m := range requestedMetrics {
 		err := srv.AddMetricNew(m)
 		if err != nil {
 			panic(err)
@@ -102,9 +102,13 @@ func (srv *Server) UpdateJSONHandle(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	updatedMetrics := srv.GetAllMetrics()
+	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
 	bodyBuffer := new(bytes.Buffer)
-	json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
+	if len(updatedMetrics) == 1 {
+		json.NewEncoder(bodyBuffer).Encode(updatedMetrics[0])
+	} else {
+		json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
+	}
 	body := bodyBuffer.String()
 
 	io.WriteString(w, body)
@@ -118,15 +122,15 @@ func (srv *Server) GetValueJSONHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
-	if len(requestedMetrics) != len(updatedMetrics) {
-		http.Error(w, "Requested metrics (one or more) not found", http.StatusNotFound)
-		return
-	}
 
 	w.Header().Set("Content-Type", "application/json")
 
 	bodyBuffer := new(bytes.Buffer)
-	json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
+	if len(updatedMetrics) == 1 {
+		json.NewEncoder(bodyBuffer).Encode(updatedMetrics[0])
+	} else {
+		json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
+	}
 	body := bodyBuffer.String()
 
 	io.WriteString(w, body)
