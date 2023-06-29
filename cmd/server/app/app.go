@@ -45,7 +45,19 @@ func (srv *Server) GetRequestedValues(m []metrics.Metric) []metrics.Metric {
 	hash := make(map[string]*metrics.Metric, 0)
 
 	for _, el := range m {
-		hash[el.ID] = &el
+		hash[el.ID] = metrics.NewCommonMetric(el.ID, el.MType, el.Delta, el.Value)
+
+		// try to init Value and Delta - to pass the tests
+		if el.MType == metrics.MetricTypeGauge {
+			if (hash[el.ID]).Value == nil {
+				(hash[el.ID]).Value = new(float64)
+			}
+		}
+		if el.MType == metrics.MetricTypeCounter {
+			if (hash[el.ID]).Delta == nil {
+				(hash[el.ID]).Delta = new(int64)
+			}
+		}
 	}
 
 	for _, el := range slice {
