@@ -84,10 +84,8 @@ func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
 		if err != nil {
 			panic(err)
 		}
-
-		var data []byte
-		request.Body.Read(data)
-		Sugar.Infoln("client-request: ", string(data[:]))
+		Sugar.Infoln("-----------NEW REQUEST---------------")
+		Sugar.Infoln("client-request: ", bodyBuffer.String())
 
 		request.Header.Set("Content-Type", "application/json")
 		response, err := client.Do(request)
@@ -95,9 +93,17 @@ func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
 			panic(err)
 		}
 
-		var dataResponse []byte
-		response.Body.Read(dataResponse)
+		dataResponse, err := io.ReadAll(response.Body)
+		if err != nil {
+			panic(err)
+		}
+
 		Sugar.Infoln("client-response: ", string(dataResponse[:]))
+		Sugar.Infoln(
+			"uri", request.RequestURI,
+			"method", request.Method,
+			"status", response.Status, // получаем перехваченный код статуса ответа
+		)
 
 		_, serr := io.Copy(io.Discard, response.Body)
 		response.Body.Close()

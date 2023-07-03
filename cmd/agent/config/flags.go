@@ -60,8 +60,9 @@ func Initialize() ClientFlags {
 
 	fmt.Println("\nFLAGS-----------")
 	fmt.Printf("ADDRESS=%v", agentFlags.Address)
-	fmt.Printf("\nEPORT_INTERVAL=%v", agentFlags.ReportInterval)
+	fmt.Printf("\nREPORT_INTERVAL=%v", agentFlags.ReportInterval)
 	fmt.Printf("\nPOLL_INTERVAL=%v", agentFlags.PollInterval)
+	fmt.Println()
 
 	return *agentFlags
 }
