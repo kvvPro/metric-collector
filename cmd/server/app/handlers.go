@@ -123,6 +123,12 @@ func (srv *Server) GetValueJSONHandle(w http.ResponseWriter, r *http.Request) {
 
 	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
 
+	// error if one or more requested metrics weren't found in our store
+	if len(requestedMetrics) != len(updatedMetrics) {
+		http.Error(w, "Missing name of metric", http.StatusNotFound)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
 	bodyBuffer := new(bytes.Buffer)

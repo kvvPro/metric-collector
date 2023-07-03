@@ -44,39 +44,30 @@ func (srv *Server) GetRequestedValues(m []metrics.Metric) []metrics.Metric {
 	slice := srv.GetAllMetrics()
 	hash := make(map[string]*metrics.Metric, 0)
 
-	for _, el := range m {
-		hash[el.ID] = metrics.NewCommonMetric(el.ID, el.MType, el.Delta, el.Value)
+	for _, el := range slice {
+		hash[el.GetName()] = metrics.NewCommonMetric(el.GetName(), el.GetTypeForQuery(), nil, nil)
 
 		// try to init Value and Delta - to pass the tests
-		if el.MType == metrics.MetricTypeGauge {
-			if (hash[el.ID]).Value == nil {
-				(hash[el.ID]).Value = new(float64)
-			}
+		if el.GetTypeForQuery() == metrics.MetricTypeGauge {
+			val := el.GetValue().(float64)
+			(hash[el.GetName()]).Value = &(val)
 		}
-		if el.MType == metrics.MetricTypeCounter {
-			if (hash[el.ID]).Delta == nil {
-				(hash[el.ID]).Delta = new(int64)
-			}
-		}
-	}
-
-	for _, el := range slice {
-		if _, isExist := hash[el.GetName()]; isExist {
-			if el.GetTypeForQuery() == metrics.MetricTypeGauge {
-				newValue := el.GetValue().(float64)
-				(hash[el.GetName()]).Value = &newValue
-			}
-			if el.GetTypeForQuery() == metrics.MetricTypeCounter {
-				newValue := el.GetValue().(int64)
-				(hash[el.GetName()]).Delta = &newValue
-			}
+		if el.GetTypeForQuery() == metrics.MetricTypeCounter {
+			val := el.GetValue().(int64)
+			(hash[el.GetName()]).Delta = &val
 		}
 	}
 
 	result := make([]metrics.Metric, 0)
-	for _, el := range hash {
-		result = append(result, *el)
+
+	for _, el := range m {
+		metricID := el.ID
+		if _, isExist := hash[metricID]; isExist {
+			// delete not found metric
+			result = append(result, *hash[metricID])
+		}
 	}
+
 	return result
 }
 
