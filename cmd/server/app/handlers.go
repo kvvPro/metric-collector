@@ -124,10 +124,12 @@ func (srv *Server) GetValueJSONHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
+	allmetrics := srv.GetAllMetrics()
 
 	// error if one or more requested metrics weren't found in our store
 	if len(requestedMetrics) != len(updatedMetrics) {
-		Sugar.Infoln("!!! issing name of metric")
+		Sugar.Infoln("!!! Missing name of metric")
+		Sugar.Infoln("all-metrics: ", allmetrics)
 		Sugar.Infoln("requsted-metrics: ", requestedMetrics)
 		Sugar.Infoln("updated-metrics: ", updatedMetrics)
 		http.Error(w, "Missing name of metric", http.StatusNotFound)
