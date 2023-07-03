@@ -10,7 +10,10 @@ import (
 	"time"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"
+	"go.uber.org/zap"
 )
+
+var Sugar zap.SugaredLogger
 
 type Agent interface {
 	ReadMetrics()
@@ -81,11 +84,20 @@ func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
 		if err != nil {
 			panic(err)
 		}
+
+		var data []byte
+		request.Body.Read(data)
+		Sugar.Infoln("client-request: ", string(data[:]))
+
 		request.Header.Set("Content-Type", "application/json")
 		response, err := client.Do(request)
 		if err != nil {
 			panic(err)
 		}
+
+		var dataResponse []byte
+		response.Body.Read(dataResponse)
+		Sugar.Infoln("client-response: ", string(dataResponse[:]))
 
 		_, serr := io.Copy(io.Discard, response.Body)
 		response.Body.Close()
