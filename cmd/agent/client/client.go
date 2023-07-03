@@ -88,15 +88,18 @@ func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
 		Sugar.Infoln("client-request: ", bodyBuffer.String())
 
 		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Connection", "Keep-Alive")
 		response, err := client.Do(request)
 		if err != nil {
 			panic(err)
 		}
+		Sugar.Infoln("Request done")
 
 		dataResponse, err := io.ReadAll(response.Body)
 		if err != nil {
 			panic(err)
 		}
+		Sugar.Infoln("Request body was read")
 
 		Sugar.Infoln("client-response: ", string(dataResponse[:]))
 		Sugar.Infoln(
@@ -106,7 +109,7 @@ func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
 		)
 
 		_, serr := io.Copy(io.Discard, response.Body)
-		response.Body.Close()
+		defer response.Body.Close()
 		if serr != nil {
 			panic(serr)
 		}
