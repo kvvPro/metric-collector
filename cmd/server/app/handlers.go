@@ -127,6 +127,9 @@ func (srv *Server) GetValueJSONHandle(w http.ResponseWriter, r *http.Request) {
 
 	// error if one or more requested metrics weren't found in our store
 	if len(requestedMetrics) != len(updatedMetrics) {
+		Sugar.Infoln("!!! issing name of metric")
+		Sugar.Infoln("requsted-metrics: ", requestedMetrics)
+		Sugar.Infoln("updated-metrics: ", updatedMetrics)
 		http.Error(w, "Missing name of metric", http.StatusNotFound)
 		return
 	}
@@ -140,6 +143,8 @@ func (srv *Server) GetValueJSONHandle(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
 	}
 	body := bodyBuffer.String()
+
+	Sugar.Infoln("body-response: ", body)
 
 	io.WriteString(w, body)
 	w.WriteHeader(http.StatusOK)
