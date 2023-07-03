@@ -63,8 +63,11 @@ func (srv *Server) GetRequestedValues(m []metrics.Metric) []metrics.Metric {
 	for _, el := range m {
 		metricID := el.ID
 		if _, isExist := hash[metricID]; isExist {
-			// delete not found metric
+			// add element with updated value
 			result = append(result, *hash[metricID])
+		} else {
+			// keep requested value
+			result = append(result, el)
 		}
 	}
 
