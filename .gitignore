@@ -27,3 +27,6 @@ vendor/
 # vscode devcontainers
 .devcontainer
 .devcontainer/*
+
+# autotests
+go-autotests

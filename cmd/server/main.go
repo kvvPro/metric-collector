@@ -27,7 +27,8 @@ func main() {
 	srv := app.NewServer(&storage, addr.Host, addr.Port)
 
 	r := chi.NewMux()
-	r.Use(app.WithLogging)
+	r.Use(app.GzipMiddleware,
+		app.WithLogging)
 	r.Handle("/update/", http.HandlerFunc(srv.UpdateJSONHandle))
 	r.Handle("/update/*", http.HandlerFunc(srv.UpdateHandle))
 	r.Handle("/value/*", http.HandlerFunc(srv.GetValueHandle))
