@@ -91,7 +91,8 @@ func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
 		request.Header.Set("Connection", "Keep-Alive")
 		response, err := client.Do(request)
 		if err != nil {
-			panic(err)
+			Sugar.Infoln("Error response: ", err.Error())
+			continue
 		}
 		Sugar.Infoln("Request done")
 
