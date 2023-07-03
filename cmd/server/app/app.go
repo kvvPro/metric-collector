@@ -67,11 +67,11 @@ func (srv *Server) GetRequestedValues(m []metrics.Metric) []metrics.Metric {
 			result = append(result, *hash[metricID])
 		} else {
 			// keep requested value
-			if el.MType == metrics.MetricTypeCounter {
-				el.Delta = new(int64)
-			} else {
-				el.Value = new(float64)
-			}
+			// if el.MType == metrics.MetricTypeCounter {
+			// 	el.Delta = new(int64)
+			// } else {
+			// 	el.Value = new(float64)
+			// }
 			result = append(result, el)
 		}
 	}
