@@ -85,7 +85,7 @@ func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
 			panic(err)
 		}
 		Sugar.Infoln("-----------NEW REQUEST---------------")
-		Sugar.Infoln("client-request: ", m)
+		Sugar.Infoln("client-request: ", bodyBuffer.String())
 
 		request.Header.Set("Content-Type", "application/json")
 		request.Header.Set("Connection", "Keep-Alive")
