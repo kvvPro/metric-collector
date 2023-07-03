@@ -73,24 +73,27 @@ func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
 	client := &http.Client{}
 	url := "http://" + cli.host + ":" + cli.port + "/update/"
 
-	bodyBuffer := new(bytes.Buffer)
-	json.NewEncoder(bodyBuffer).Encode(allMetrics)
+	for _, m := range allMetrics {
+		bodyBuffer := new(bytes.Buffer)
+		json.NewEncoder(bodyBuffer).Encode(m)
 
-	request, err := http.NewRequest(http.MethodPost, url, bodyBuffer)
-	if err != nil {
-		panic(err)
-	}
-	request.Header.Set("Content-Type", "application/json")
-	response, err := client.Do(request)
-	if err != nil {
-		panic(err)
+		request, err := http.NewRequest(http.MethodPost, url, bodyBuffer)
+		if err != nil {
+			panic(err)
+		}
+		request.Header.Set("Content-Type", "application/json")
+		response, err := client.Do(request)
+		if err != nil {
+			panic(err)
+		}
+
+		_, serr := io.Copy(io.Discard, response.Body)
+		response.Body.Close()
+		if serr != nil {
+			panic(serr)
+		}
 	}
 
-	_, serr := io.Copy(io.Discard, response.Body)
-	response.Body.Close()
-	if serr != nil {
-		panic(serr)
-	}
 	return nil
 }
 

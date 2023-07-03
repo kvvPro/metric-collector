@@ -66,6 +66,9 @@ func isValidUpdateJSONParams(r *http.Request, w http.ResponseWriter) ([]metrics.
 	if err != nil {
 		panic(err)
 	}
+
+	Sugar.Infoln("body-request: ", string(data[:]))
+
 	reader := io.NopCloser(bytes.NewReader(data))
 	reader2 := io.NopCloser(bytes.NewReader(data))
 
@@ -116,6 +119,9 @@ func isValidGetValueJSONParams(r *http.Request, w http.ResponseWriter) ([]metric
 	if err != nil {
 		panic(err)
 	}
+
+	Sugar.Infoln("body-request: ", string(data[:]))
+
 	reader := io.NopCloser(bytes.NewReader(data))
 	reader2 := io.NopCloser(bytes.NewReader(data))
 

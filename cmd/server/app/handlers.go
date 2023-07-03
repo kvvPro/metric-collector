@@ -111,6 +111,8 @@ func (srv *Server) UpdateJSONHandle(w http.ResponseWriter, r *http.Request) {
 	}
 	body := bodyBuffer.String()
 
+	Sugar.Infoln("body-response: ", body)
+
 	io.WriteString(w, body)
 	w.WriteHeader(http.StatusOK)
 }
