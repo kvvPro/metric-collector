@@ -1,21 +1,34 @@
 package app
 
 import (
+	"time"
+
 	"github.com/kvvPro/metric-collector/internal/metrics"
 	st "github.com/kvvPro/metric-collector/internal/storage"
 )
 
 type Server struct {
-	storage st.Storage
-	Host    string
-	Port    string
+	storage         st.Storage
+	Host            string
+	Port            string
+	StoreInterval   int
+	FileStoragePath string
+	Restore         bool
 }
 
-func NewServer(store st.Storage, host string, port string) *Server {
+func NewServer(store st.Storage,
+	host string,
+	port string,
+	storeInterval int,
+	filePath string,
+	restore bool) *Server {
 	return &Server{
-		storage: store,
-		Host:    host,
-		Port:    port,
+		storage:         store,
+		Host:            host,
+		Port:            port,
+		StoreInterval:   storeInterval,
+		FileStoragePath: filePath,
+		Restore:         restore,
 	}
 }
 
@@ -32,6 +45,13 @@ func (srv *Server) AddMetricNew(m metrics.Metric) error {
 	if err != nil {
 		panic(err)
 	}
+	if srv.StoreInterval == 0 {
+		err = srv.SaveToFile()
+		if err != nil {
+			Sugar.Infoln("Save to file failed: ", err.Error())
+		}
+	}
+
 	return nil
 }
 
@@ -82,4 +102,32 @@ func (srv *Server) GetRequestedValues(m []metrics.Metric) []metrics.Metric {
 func (srv *Server) GetAllMetrics() []st.Metric {
 	val := srv.storage.GetAllMetrics()
 	return val
+}
+
+func (srv *Server) AsyncSaving() {
+	// run if only StoreInterval > 0, if StoreInterval = 0 => sync writing after each update
+	// and FileStoragePath != ""
+	if srv.StoreInterval > 0 && srv.FileStoragePath != "" {
+		for {
+			time.Sleep(time.Duration(srv.StoreInterval) * time.Second)
+
+			err := srv.SaveToFile()
+			if err != nil {
+				Sugar.Infoln("Save to file failed: ", err.Error())
+			}
+		}
+	}
+}
+
+func (srv *Server) RestoreValues() {
+	if srv.Restore {
+		m, err := srv.ReadFromFile()
+		if err != nil {
+			Sugar.Infoln("Read values failed: ", err.Error())
+		}
+
+		for _, el := range m {
+			srv.AddMetricNew(el)
+		}
+	}
 }

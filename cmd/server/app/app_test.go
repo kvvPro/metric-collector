@@ -55,9 +55,12 @@ func TestServer_AddMetric(t *testing.T) {
 
 func TestNewServer(t *testing.T) {
 	type args struct {
-		store st.Storage
-		host  string
-		port  string
+		store         st.Storage
+		host          string
+		port          string
+		storeInterval int
+		filePath      string
+		restore       bool
 	}
 	tests := []struct {
 		name    string
@@ -72,23 +75,29 @@ func TestNewServer(t *testing.T) {
 					Gauges:   make(map[string]float64),
 					Counters: make(map[string]int64),
 				},
-				host: "localhost",
-				port: "8080",
+				host:          "localhost",
+				port:          "8080",
+				storeInterval: 200,
+				filePath:      "/tmp/val.txt",
+				restore:       true,
 			},
 			want: &Server{
 				storage: &memstorage.MemStorage{
 					Gauges:   make(map[string]float64),
 					Counters: make(map[string]int64),
 				},
-				Host: "localhost",
-				Port: "8080",
+				Host:            "localhost",
+				Port:            "8080",
+				StoreInterval:   200,
+				FileStoragePath: "/tmp/val.txt",
+				Restore:         true,
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewServer(tt.args.store, tt.args.host, tt.args.port)
+			got := NewServer(tt.args.store, tt.args.host, tt.args.port, tt.args.storeInterval, tt.args.filePath, tt.args.restore)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewServer() = %v, want %v", got, tt.want)
 			}

@@ -83,17 +83,17 @@ func isValidUpdateJSONParams(r *http.Request, w http.ResponseWriter) ([]metrics.
 		body = append(body, oneMetric)
 	}
 
-	// for _, m := range body {
-	// 	if m.ID == "" {
-	// 		http.Error(w, "Missing name of metric", http.StatusNotFound)
-	// 		return nil, false
-	// 	}
+	for _, m := range body {
+		if m.ID == "" {
+			http.Error(w, "Missing name of metric", http.StatusNotFound)
+			return nil, false
+		}
 
-	// 	if !isValidType(m.MType) || m.Delta == nil && m.Value == nil {
-	// 		http.Error(w, "Invalid type or value", http.StatusBadRequest)
-	// 		return nil, false
-	// 	}
-	// }
+		if !isValidType(m.MType) || m.Delta == nil && m.Value == nil {
+			http.Error(w, "Invalid type or value", http.StatusBadRequest)
+			return nil, false
+		}
+	}
 
 	// full regexp for check all path
 	if !isValidURLJSON(p) {
