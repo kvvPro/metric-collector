@@ -89,8 +89,15 @@ func isValidUpdateJSONParams(r *http.Request, w http.ResponseWriter) ([]metrics.
 			return nil, false
 		}
 
-		if !isValidType(m.MType) || m.Delta == nil && m.Value == nil {
-			http.Error(w, "Invalid type or value", http.StatusBadRequest)
+		if !isValidType(m.MType) {
+			http.Error(w, "Invalid type", http.StatusBadRequest)
+			return nil, false
+		}
+
+		if m.Delta == nil && m.Value == nil ||
+			m.MType == metrics.MetricTypeCounter && m.Delta == nil ||
+			m.MType == metrics.MetricTypeGauge && m.Value == nil {
+			http.Error(w, "Invalid value", http.StatusBadRequest)
 			return nil, false
 		}
 	}
