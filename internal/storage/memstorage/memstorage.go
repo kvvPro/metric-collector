@@ -44,7 +44,7 @@ func (s *MemStorage) UpdateNew(t string, n string, delta *int64, value *float64)
 			s.Gauges[n] = *value
 		}
 	} else if t == metrics.MetricTypeCounter {
-		if value == nil {
+		if delta == nil {
 			val := new(int64)
 			s.Counters[n] = *val
 		} else {
