@@ -37,9 +37,19 @@ func (s *MemStorage) Update(t string, n string, v string) error {
 
 func (s *MemStorage) UpdateNew(t string, n string, delta *int64, value *float64) error {
 	if t == metrics.MetricTypeGauge {
-		s.Gauges[n] = *value
+		if value == nil {
+			val := new(float64)
+			s.Gauges[n] = *val
+		} else {
+			s.Gauges[n] = *value
+		}
 	} else if t == metrics.MetricTypeCounter {
-		s.Counters[n] += *delta
+		if value == nil {
+			val := new(int64)
+			s.Counters[n] = *val
+		} else {
+			s.Counters[n] += *delta
+		}
 	} else {
 		return errors.New("uknown metric type")
 	}

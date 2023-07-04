@@ -143,17 +143,17 @@ func isValidGetValueJSONParams(r *http.Request, w http.ResponseWriter) ([]metric
 		body = append(body, oneMetric)
 	}
 
-	// for _, m := range body {
-	// 	if m.ID == "" {
-	// 		http.Error(w, "Missing name of metric", http.StatusNotFound)
-	// 		return nil, false
-	// 	}
+	for _, m := range body {
+		if m.ID == "" {
+			http.Error(w, "Missing name of metric", http.StatusNotFound)
+			return nil, false
+		}
 
-	// 	if !isValidType(m.MType) {
-	// 		http.Error(w, "Invalid type", http.StatusBadRequest)
-	// 		return nil, false
-	// 	}
-	// }
+		if !isValidType(m.MType) {
+			http.Error(w, "Invalid type", http.StatusBadRequest)
+			return nil, false
+		}
+	}
 
 	// full regexp for check all path
 	if !isValidURLJSON(p) {
