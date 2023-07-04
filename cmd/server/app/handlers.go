@@ -163,7 +163,7 @@ func (srv *Server) GetValueJSONHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
-	allmetrics := srv.GetAllMetrics()
+	allmetrics := srv.GetAllMetricsNew()
 
 	// error if one or more requested metrics weren't found in our store
 	if len(requestedMetrics) != len(updatedMetrics) {

@@ -90,17 +90,19 @@ func (s *MemStorage) GetAllMetrics() []storage.Metric {
 	return m
 }
 
-func (s *MemStorage) GetAllMetricsNew() []metrics.Metric {
-	m := []metrics.Metric{}
+func (s *MemStorage) GetAllMetricsNew() []*metrics.Metric {
+	m := []*metrics.Metric{}
 
 	for name, val := range s.Counters {
-		c := metrics.NewCommonMetric(name, metrics.MetricTypeCounter, &val, nil)
-		m = append(m, *c)
+		newVal := val
+		c := metrics.NewCommonMetric(name, metrics.MetricTypeCounter, &newVal, nil)
+		m = append(m, c)
 	}
 
 	for name, val := range s.Gauges {
-		c := metrics.NewCommonMetric(name, metrics.MetricTypeGauge, nil, &val)
-		m = append(m, *c)
+		newVal := val
+		c := metrics.NewCommonMetric(name, metrics.MetricTypeGauge, nil, &newVal)
+		m = append(m, c)
 	}
 
 	return m

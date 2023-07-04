@@ -47,7 +47,7 @@ func main() {
 		"srvFlags", srvFlags,
 	)
 
-	go srv.AsyncSaving()
+	// go srv.AsyncSaving()
 
 	if err := http.ListenAndServe(srv.Host+":"+srv.Port, r); err != nil {
 		// записываем в лог ошибку, если сервер не запустился

@@ -14,5 +14,5 @@ type Storage interface {
 	UpdateNew(t string, n string, delta *int64, value *float64) error
 	GetValue(t string, n string) (any, error)
 	GetAllMetrics() []Metric
-	GetAllMetricsNew() []metrics.Metric
+	GetAllMetricsNew() []*metrics.Metric
 }

@@ -61,21 +61,11 @@ func (srv *Server) GetMetricValue(metricType string, metricName string) (any, er
 }
 
 func (srv *Server) GetRequestedValues(m []metrics.Metric) []metrics.Metric {
-	slice := srv.GetAllMetrics()
+	slice := srv.GetAllMetricsNew()
 	hash := make(map[string]*metrics.Metric, 0)
 
 	for _, el := range slice {
-		hash[el.GetName()] = metrics.NewCommonMetric(el.GetName(), el.GetTypeForQuery(), nil, nil)
-
-		// try to init Value and Delta - to pass the tests
-		if el.GetTypeForQuery() == metrics.MetricTypeGauge {
-			val := el.GetValue().(float64)
-			(hash[el.GetName()]).Value = &(val)
-		}
-		if el.GetTypeForQuery() == metrics.MetricTypeCounter {
-			val := el.GetValue().(int64)
-			(hash[el.GetName()]).Delta = &val
-		}
+		hash[el.ID] = el
 	}
 
 	result := make([]metrics.Metric, 0)
@@ -101,6 +91,10 @@ func (srv *Server) GetRequestedValues(m []metrics.Metric) []metrics.Metric {
 
 func (srv *Server) GetAllMetrics() []st.Metric {
 	val := srv.storage.GetAllMetrics()
+	return val
+}
+func (srv *Server) GetAllMetricsNew() []*metrics.Metric {
+	val := srv.storage.GetAllMetricsNew()
 	return val
 }
 
