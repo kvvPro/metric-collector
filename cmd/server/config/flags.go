@@ -41,10 +41,10 @@ func Initialize() ServerFlags {
 		panic(err)
 	}
 	fmt.Println("ENV-----------")
-	fmt.Printf("ADDRESS=%v", srvFlags.Address)
-	fmt.Printf("STORE_INTERVAL=%v", srvFlags.StoreInterval)
-	fmt.Printf("FILE_STORAGE_PATH=%v", srvFlags.FileStoragePath)
-	fmt.Printf("RESTORE=%v", srvFlags.Restore)
+	fmt.Println("ADDRESS=%v", srvFlags.Address)
+	fmt.Println("STORE_INTERVAL=%v", srvFlags.StoreInterval)
+	fmt.Println("FILE_STORAGE_PATH=%v", srvFlags.FileStoragePath)
+	fmt.Println("RESTORE=%v", srvFlags.Restore)
 	// try to get vars from Flags
 	if srvFlags.Address == "" {
 		pflag.StringVarP(&srvFlags.Address, "addr", "a", "localhost:8080", "Net address host:port")
@@ -69,10 +69,10 @@ func Initialize() ServerFlags {
 	}
 
 	fmt.Println("\nFLAGS-----------")
-	fmt.Printf("ADDRESS=%v", srvFlags.Address)
-	fmt.Printf("STORE_INTERVAL=%v", srvFlags.StoreInterval)
-	fmt.Printf("FILE_STORAGE_PATH=%v", srvFlags.FileStoragePath)
-	fmt.Printf("RESTORE=%v", srvFlags.Restore)
+	fmt.Println("ADDRESS=%v", srvFlags.Address)
+	fmt.Println("STORE_INTERVAL=%v", srvFlags.StoreInterval)
+	fmt.Println("FILE_STORAGE_PATH=%v", srvFlags.FileStoragePath)
+	fmt.Println("RESTORE=%v", srvFlags.Restore)
 
 	return *srvFlags
 }
