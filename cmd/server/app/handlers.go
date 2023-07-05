@@ -257,6 +257,7 @@ func (srv *Server) AllMetricsHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body = strings.ReplaceAll(body, "%rows", rows)
+	w.Header().Set("Content-Type", "text/html")
 	io.WriteString(w, body)
 	w.WriteHeader(http.StatusOK)
 }
