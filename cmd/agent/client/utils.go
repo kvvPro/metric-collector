@@ -63,8 +63,8 @@ func NewMetricStruct(mname string, mtype string, ival reflect.Value) *metrics.Me
 		c := metrics.NewCommonMetric(mname, metrics.MetricTypeGauge, nil, &val)
 		return c
 	case "uint64":
-		val := int64(ival.Uint())
-		c := metrics.NewCommonMetric(mname, metrics.MetricTypeCounter, &val, nil)
+		val := float64(ival.Uint())
+		c := metrics.NewCommonMetric(mname, metrics.MetricTypeGauge, nil, &val)
 		return c
 	case "int64":
 		val := ival.Int()
@@ -82,8 +82,8 @@ func NewMetric(mname string, mtype string, ival reflect.Value) IMetric {
 		c := metrics.NewGauge(mname, mtype, val)
 		return c
 	case "uint64":
-		val := ival.Uint()
-		c := metrics.NewCounter(mname, mtype, int64(val))
+		val := float64(ival.Uint())
+		c := metrics.NewGauge(mname, mtype, val)
 		return c
 	case "int64":
 		val := ival.Int()

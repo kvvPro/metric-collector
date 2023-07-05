@@ -162,6 +162,14 @@ func (srv *Server) GetValueJSONHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// check if ID+Type of requested metric not found in our storage
+	for _, el := range requestedMetrics {
+		if _, err := srv.GetMetricValue(el.MType, el.ID); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+
 	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
 	allmetrics := srv.GetAllMetricsNew()
 
