@@ -126,8 +126,9 @@ func isValidGetValueJSONParams(r *http.Request, w http.ResponseWriter) ([]metric
 	if err != nil {
 		panic(err)
 	}
+	dataStr := string(data[:])
 
-	Sugar.Infoln("body-request: ", string(data[:]))
+	Sugar.Infoln("body-request: ", dataStr)
 
 	reader := io.NopCloser(bytes.NewReader(data))
 	reader2 := io.NopCloser(bytes.NewReader(data))

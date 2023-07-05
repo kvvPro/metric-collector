@@ -13,6 +13,7 @@ import (
 )
 
 var Sugar zap.SugaredLogger
+var ContentTypesForCompress = "application/json; text/html"
 
 type (
 	// берём структуру для хранения сведений об ответе
@@ -77,9 +78,11 @@ func GzipMiddleware(h http.Handler) http.Handler {
 		// проверяем, что клиент умеет получать от сервера сжатые данные в формате gzip
 		acceptEncoding := r.Header.Get("Accept-Encoding")
 		supportsGzip := strings.Contains(acceptEncoding, "gzip")
-		if supportsGzip {
+		enableCompress := strings.Contains(ContentTypesForCompress, r.Header.Get("Content-Type"))
+		if supportsGzip && enableCompress {
 			// оборачиваем оригинальный http.ResponseWriter новым с поддержкой сжатия
 			cw := newCompressWriter(w)
+			cw.Header().Set("Content-Encoding", "gzip")
 			// меняем оригинальный http.ResponseWriter на новый
 			ow = cw
 			// не забываем отправить клиенту все сжатые данные после завершения middleware
