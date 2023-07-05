@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"runtime"
 	"time"
@@ -56,6 +57,7 @@ func NewClient(pollInterval int, reportInterval int, host string, port string, c
 func (cli *Client) ReadMetrics() {
 	runtime.ReadMemStats(&cli.Metrics.MemStats)
 	cli.Metrics.PollCount += 1
+	cli.Metrics.RandomValue = 0.1 + rand.Float64()*(1000-0.1)
 }
 
 func (cli *Client) PushMetrics() {
