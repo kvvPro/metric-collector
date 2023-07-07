@@ -31,8 +31,7 @@ func main() {
 	srvFlags := config.Initialize()
 	storage := store.NewMemStorage()
 	srv := app.NewServer(&storage,
-		srvFlags.Host,
-		srvFlags.Port,
+		srvFlags.Address,
 		srvFlags.StoreInterval,
 		srvFlags.FileStoragePath,
 		srvFlags.Restore)
@@ -69,7 +68,7 @@ func startServer(srv *app.Server, srvFlags *config.ServerFlags) {
 		"srvFlags", srvFlags,
 	)
 
-	if err := http.ListenAndServe(srv.Host+":"+srv.Port, r); err != nil {
+	if err := http.ListenAndServe(srv.Address, r); err != nil {
 		// записываем в лог ошибку, если сервер не запустился
 		app.Sugar.Fatalw(err.Error(), "event", "start server")
 	}

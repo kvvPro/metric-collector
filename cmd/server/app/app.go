@@ -4,28 +4,26 @@ import (
 	"time"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"
-	st "github.com/kvvPro/metric-collector/internal/storage"
+	"github.com/kvvPro/metric-collector/internal/storage"
 )
 
 type Server struct {
-	storage         st.Storage
-	Host            string
+	storage         storage.Storage
+	Address         string
 	Port            string
 	StoreInterval   int
 	FileStoragePath string
 	Restore         bool
 }
 
-func NewServer(store st.Storage,
-	host string,
-	port string,
+func NewServer(store storage.Storage,
+	address string,
 	storeInterval int,
 	filePath string,
 	restore bool) *Server {
 	return &Server{
 		storage:         store,
-		Host:            host,
-		Port:            port,
+		Address:         address,
 		StoreInterval:   storeInterval,
 		FileStoragePath: filePath,
 		Restore:         restore,
@@ -89,7 +87,7 @@ func (srv *Server) GetRequestedValues(m []metrics.Metric) []metrics.Metric {
 	return result
 }
 
-func (srv *Server) GetAllMetrics() []st.Metric {
+func (srv *Server) GetAllMetrics() []storage.Metric {
 	val := srv.storage.GetAllMetrics()
 	return val
 }
@@ -108,6 +106,7 @@ func (srv *Server) AsyncSaving() {
 			err := srv.SaveToFile()
 			if err != nil {
 				Sugar.Infoln("Save to file failed: ", err.Error())
+				panic(err)
 			}
 		}
 	}
@@ -118,6 +117,7 @@ func (srv *Server) RestoreValues() {
 		m, err := srv.ReadFromFile()
 		if err != nil {
 			Sugar.Infoln("Read values failed: ", err.Error())
+			panic(err)
 		}
 
 		for _, el := range m {
