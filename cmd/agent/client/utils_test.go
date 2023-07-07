@@ -11,7 +11,7 @@ func TestDeepFields(t *testing.T) {
 	tests := []struct {
 		name string
 		arg  interface{}
-		want []IMetric
+		want []Metric
 	}{
 		{
 			name: "1",
@@ -36,7 +36,7 @@ func TestDeepFields(t *testing.T) {
 				PollCount:   4,
 				RandomValue: 445.1,
 			},
-			want: []IMetric{
+			want: []Metric{
 				&metrics.Counter{
 					Name:  "A",
 					Type:  "int64",
@@ -83,7 +83,7 @@ func TestNewMetric(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want IMetric
+		want Metric
 	}{
 		{
 			name: "1",

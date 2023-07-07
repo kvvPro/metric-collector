@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"
+
 	"go.uber.org/zap"
 )
 
@@ -21,7 +22,7 @@ type Agent interface {
 	PushMetrics()
 }
 
-type IMetric interface {
+type Metric interface {
 	GetName() string
 	GetType() string
 	GetValue() any
@@ -127,7 +128,7 @@ func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
 	return nil
 }
 
-func (cli *Client) updateMetric(metric IMetric) error {
+func (cli *Client) updateMetric(metric Metric) error {
 	client := &http.Client{}
 	// metric := m.(Metric)
 	metricType := metric.GetTypeForQuery()

@@ -6,8 +6,8 @@ import (
 	"github.com/kvvPro/metric-collector/internal/metrics"
 )
 
-func DeepFields(iface interface{}) []IMetric {
-	fields := make([]IMetric, 0)
+func DeepFields(iface interface{}) []Metric {
+	fields := make([]Metric, 0)
 	ifv := reflect.ValueOf(iface)
 	ift := reflect.TypeOf(iface)
 
@@ -75,7 +75,7 @@ func NewMetricStruct(mname string, mtype string, ival reflect.Value) *metrics.Me
 	}
 }
 
-func NewMetric(mname string, mtype string, ival reflect.Value) IMetric {
+func NewMetric(mname string, mtype string, ival reflect.Value) Metric {
 	switch mtype {
 	case "float64":
 		val := ival.Float()
