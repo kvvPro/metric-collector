@@ -9,8 +9,7 @@ func TestNewClient(t *testing.T) {
 	type args struct {
 		pollInterval   int
 		reportInterval int
-		host           string
-		port           string
+		address        string
 		contentType    string
 	}
 	tests := []struct {
@@ -24,15 +23,13 @@ func TestNewClient(t *testing.T) {
 			args: args{
 				pollInterval:   2,
 				reportInterval: 10,
-				host:           "http://localhost",
-				port:           "8080",
+				address:        "http://localhost:8080",
 				contentType:    "text/plain",
 			},
 			want: &Client{
 				pollInterval:   2,
 				reportInterval: 10,
-				host:           "http://localhost",
-				port:           "8080",
+				Address:        "http://localhost:8080",
 				contentType:    "text/plain",
 			},
 			wantErr: false,
@@ -42,15 +39,13 @@ func TestNewClient(t *testing.T) {
 			args: args{
 				pollInterval:   4,
 				reportInterval: 12,
-				host:           "http://localhost",
-				port:           "8090",
+				address:        "http://localhost:8080",
 				contentType:    "opa",
 			},
 			want: &Client{
 				pollInterval:   4,
 				reportInterval: 12,
-				host:           "http://localhost",
-				port:           "8090",
+				Address:        "http://localhost:8080",
 				contentType:    "opa",
 			},
 			wantErr: false,
@@ -58,7 +53,7 @@ func TestNewClient(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewClient(tt.args.pollInterval, tt.args.reportInterval, tt.args.host, tt.args.port, tt.args.contentType)
+			got, err := NewClient(tt.args.pollInterval, tt.args.reportInterval, tt.args.address, tt.args.contentType)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -75,8 +70,7 @@ func TestClient_ReadMetrics(t *testing.T) {
 		Metrics        Metrics
 		pollInterval   int
 		reportInterval int
-		host           string
-		port           string
+		address        string
 		contentType    string
 	}
 	tests := []struct {
@@ -91,8 +85,7 @@ func TestClient_ReadMetrics(t *testing.T) {
 				Metrics:        tt.fields.Metrics,
 				pollInterval:   tt.fields.pollInterval,
 				reportInterval: tt.fields.reportInterval,
-				host:           tt.fields.host,
-				port:           tt.fields.port,
+				Address:        tt.fields.address,
 				contentType:    tt.fields.contentType,
 			}
 			cli.ReadMetrics()
@@ -105,8 +98,7 @@ func TestClient_PushMetrics(t *testing.T) {
 		Metrics        Metrics
 		pollInterval   int
 		reportInterval int
-		host           string
-		port           string
+		address        string
 		contentType    string
 	}
 	tests := []struct {
@@ -121,8 +113,7 @@ func TestClient_PushMetrics(t *testing.T) {
 				Metrics:        tt.fields.Metrics,
 				pollInterval:   tt.fields.pollInterval,
 				reportInterval: tt.fields.reportInterval,
-				host:           tt.fields.host,
-				port:           tt.fields.port,
+				Address:        tt.fields.address,
 				contentType:    tt.fields.contentType,
 			}
 			cli.PushMetrics()
@@ -135,8 +126,7 @@ func TestClient_updateMetric(t *testing.T) {
 		Metrics        Metrics
 		pollInterval   int
 		reportInterval int
-		host           string
-		port           string
+		address        string
 		contentType    string
 	}
 	type args struct {
@@ -156,8 +146,7 @@ func TestClient_updateMetric(t *testing.T) {
 				Metrics:        tt.fields.Metrics,
 				pollInterval:   tt.fields.pollInterval,
 				reportInterval: tt.fields.reportInterval,
-				host:           tt.fields.host,
-				port:           tt.fields.port,
+				Address:        tt.fields.address,
 				contentType:    tt.fields.contentType,
 			}
 			if err := cli.updateMetric(tt.args.metric); (err != nil) != tt.wantErr {
