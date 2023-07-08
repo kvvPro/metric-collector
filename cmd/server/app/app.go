@@ -116,7 +116,7 @@ func (srv *Server) RestoreValues() {
 		m, err := srv.ReadFromFile()
 		if err != nil {
 			Sugar.Infoln("Read values failed: ", err.Error())
-			panic(err)
+			// panic(err)
 		}
 
 		for _, el := range m {
