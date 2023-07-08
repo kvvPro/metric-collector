@@ -1,10 +1,8 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/caarlos0/env/v8"
 	"github.com/spf13/pflag"
@@ -12,21 +10,8 @@ import (
 
 type ClientFlags struct {
 	Address        string `env:"ADDRESS"`
-	Host           string
-	Port           string
-	ReportInterval int `env:"REPORT_INTERVAL"`
-	PollInterval   int `env:"POLL_INTERVAL"`
-}
-
-func (flags *ClientFlags) SetAddr(s string) error {
-	hp := strings.Split(s, ":")
-	if len(hp) != 2 {
-		return errors.New("need address in a form host:port")
-	}
-
-	flags.Host = hp[0]
-	flags.Port = hp[1]
-	return nil
+	ReportInterval int    `env:"REPORT_INTERVAL"`
+	PollInterval   int    `env:"POLL_INTERVAL"`
 }
 
 func Initialize() ClientFlags {
@@ -40,7 +25,7 @@ func Initialize() ClientFlags {
 	fmt.Printf("\nREPORT_INTERVAL=%v", agentFlags.ReportInterval)
 	fmt.Printf("\nPOLL_INTERVAL=%v", agentFlags.PollInterval)
 	// try to get vars from Flags
-	if agentFlags.Address == "" {
+	if _, isSet := os.LookupEnv("ADDRESS"); !isSet {
 		pflag.StringVarP(&agentFlags.Address, "addr", "a", "localhost:8080", "Net address host:port")
 	}
 	if _, isSet := os.LookupEnv("REPORT_INTERVAL"); !isSet {
@@ -53,10 +38,6 @@ func Initialize() ClientFlags {
 	}
 
 	pflag.Parse()
-	err := agentFlags.SetAddr(agentFlags.Address)
-	if err != nil {
-		panic(err)
-	}
 
 	fmt.Println("\nFLAGS-----------")
 	fmt.Printf("ADDRESS=%v", agentFlags.Address)

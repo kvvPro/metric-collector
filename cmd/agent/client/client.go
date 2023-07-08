@@ -40,18 +40,16 @@ type Client struct {
 	Metrics        Metrics
 	pollInterval   int
 	reportInterval int
-	host           string
-	port           string
+	Address        string
 	contentType    string
 }
 
-func NewClient(pollInterval int, reportInterval int, host string, port string, contentType string) (*Client, error) {
+func NewClient(pollInterval int, reportInterval int, address string, contentType string) (*Client, error) {
 	return &Client{
 		Metrics:        Metrics{},
 		pollInterval:   pollInterval,
 		reportInterval: reportInterval,
-		host:           host,
-		port:           port,
+		Address:        address,
 		contentType:    contentType,
 	}, nil
 }
@@ -83,7 +81,7 @@ func (cli *Client) PushMetricsJSON() {
 
 func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
 	client := &http.Client{}
-	url := "http://" + cli.host + ":" + cli.port + "/update/"
+	url := "http://" + cli.Address + "/update/"
 
 	for _, m := range allMetrics {
 		bodyBuffer := new(bytes.Buffer)
@@ -135,7 +133,7 @@ func (cli *Client) updateMetric(metric Metric) error {
 	metricType := metric.GetTypeForQuery()
 	metricName := metric.GetName()
 	metricValue := metric.GetValue()
-	url := "http://" + cli.host + ":" + cli.port + "/update/" +
+	url := "http://" + cli.Address + "/update/" +
 		metricType + "/" + metricName + "/" + fmt.Sprintf("%v", metricValue)
 
 	var body []byte
