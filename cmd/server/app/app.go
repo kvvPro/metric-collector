@@ -10,7 +10,6 @@ import (
 type Server struct {
 	storage         storage.Storage
 	Address         string
-	Port            string
 	StoreInterval   int
 	FileStoragePath string
 	Restore         bool

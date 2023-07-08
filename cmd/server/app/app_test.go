@@ -44,7 +44,6 @@ func TestServer_AddMetric(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			srv := &Server{
 				storage: tt.fields.storage,
-				Port:    tt.fields.Port,
 			}
 			if err := srv.AddMetric(tt.args.metricType, tt.args.metricName, tt.args.metricValue); (err != nil) != tt.wantErr {
 				t.Errorf("Server.AddMetric() error = %v, wantErr %v", err, tt.wantErr)
@@ -124,7 +123,6 @@ func TestServer_GetMetricValue(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			srv := &Server{
 				storage: tt.fields.storage,
-				Port:    tt.fields.Port,
 			}
 			got, err := srv.GetMetricValue(tt.args.metricType, tt.args.metricName)
 			if (err != nil) != tt.wantErr {
@@ -154,7 +152,6 @@ func TestServer_GetAllMetrics(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			srv := &Server{
 				storage: tt.fields.storage,
-				Port:    tt.fields.Port,
 			}
 			if got := srv.GetAllMetrics(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Server.GetAllMetrics() = %v, want %v", got, tt.want)

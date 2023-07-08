@@ -73,7 +73,12 @@ func (cli *Client) PushMetrics() {
 func (cli *Client) PushMetricsJSON() {
 	mslice := DeepFieldsNew(cli.Metrics)
 
-	cli.updateMetricsJSON(mslice)
+	err := cli.updateMetricsJSON(mslice)
+	if err != nil {
+		panic(err)
+	}
+	// обнуляем PollCount
+	cli.Metrics.PollCount = 0
 }
 
 func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {

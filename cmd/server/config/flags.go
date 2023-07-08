@@ -27,7 +27,7 @@ func Initialize() ServerFlags {
 	fmt.Printf("FILE_STORAGE_PATH=%v", srvFlags.FileStoragePath)
 	fmt.Printf("RESTORE=%v", srvFlags.Restore)
 	// try to get vars from Flags
-	if srvFlags.Address == "" {
+	if _, isSet := os.LookupEnv("ADDRESS"); !isSet {
 		pflag.StringVarP(&srvFlags.Address, "addr", "a", "localhost:8080", "Net address host:port")
 	}
 	if _, isSet := os.LookupEnv("STORE_INTERVAL"); !isSet {
