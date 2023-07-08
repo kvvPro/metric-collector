@@ -28,13 +28,20 @@ func main() {
 	// делаем регистратор SugaredLogger
 	app.Sugar = *logger.Sugar()
 
+	app.Sugar.Infoln("before init config")
+
 	srvFlags := config.Initialize()
+
+	app.Sugar.Infoln("after init config")
+
 	storage := store.NewMemStorage()
 	srv := app.NewServer(&storage,
 		srvFlags.Address,
 		srvFlags.StoreInterval,
 		srvFlags.FileStoragePath,
 		srvFlags.Restore)
+
+	app.Sugar.Infoln("before init config")
 
 	go startServer(srv, &srvFlags)
 	go srv.AsyncSaving()
@@ -60,7 +67,11 @@ func startServer(srv *app.Server, srvFlags *config.ServerFlags) {
 	r.Handle("/value/", http.HandlerFunc(srv.GetValueJSONHandle))
 	r.Handle("/", http.HandlerFunc(srv.AllMetricsHandle))
 
+	app.Sugar.Infoln("before restoring values")
+
 	srv.RestoreValues()
+
+	app.Sugar.Infoln("after restoring values")
 
 	// записываем в лог, что сервер запускается
 	app.Sugar.Infow(
