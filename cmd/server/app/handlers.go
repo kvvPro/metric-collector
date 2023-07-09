@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -108,6 +109,20 @@ func GzipMiddleware(h http.Handler) http.Handler {
 		h.ServeHTTP(ow, r)
 	}
 	return http.HandlerFunc(compressFunc)
+}
+
+func (srv *Server) PingHandle(w http.ResponseWriter, r *http.Request) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1500*time.Millisecond)
+	defer cancel()
+	err := srv.Ping(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	body := "OK!"
+	io.WriteString(w, body)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (srv *Server) UpdateHandle(w http.ResponseWriter, r *http.Request) {

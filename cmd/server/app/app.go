@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"time"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"
@@ -30,6 +31,10 @@ func NewServer(store st.Storage,
 		FileStoragePath: filePath,
 		Restore:         restore,
 	}
+}
+
+func (srv *Server) Ping(ctx context.Context) error {
+	return srv.storage.Ping(ctx)
 }
 
 func (srv *Server) AddMetric(metricType string, metricName string, metricValue string) error {
