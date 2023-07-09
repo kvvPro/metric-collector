@@ -15,12 +15,12 @@ type Settings struct {
 	User    string
 	Pass    string
 	Host    string
-	Port    int
+	Port    string
 	DBName  string
 	ConnStr string
 }
 
-func NewPSQL(user string, pass string, host string, port int, db string) Settings {
+func NewPSQL(user string, pass string, host string, port string, db string) Settings {
 	return Settings{
 		User:   user,
 		Pass:   pass,
@@ -28,16 +28,23 @@ func NewPSQL(user string, pass string, host string, port int, db string) Setting
 		Port:   port,
 		DBName: db,
 		ConnStr: fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",
-			host+":"+string(port), user, pass, db),
+			host+":"+port, user, pass, db),
+	}
+}
+
+func NewPSQLStr(connection string) Settings {
+	return Settings{
+		ConnStr: connection,
 	}
 }
 
 func (s *Settings) Ping(ctx context.Context) error {
 	dbpool, err := pgxpool.New(ctx, s.ConnStr)
-	defer dbpool.Close()
 	if err != nil {
 		return err
 	}
+
+	defer dbpool.Close()
 
 	err = dbpool.Ping(ctx)
 	if err != nil {

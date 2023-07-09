@@ -1,6 +1,10 @@
 package storage
 
-import "github.com/kvvPro/metric-collector/internal/metrics"
+import (
+	"context"
+
+	"github.com/kvvPro/metric-collector/internal/metrics"
+)
 
 type Metric interface {
 	GetName() string
@@ -10,6 +14,7 @@ type Metric interface {
 }
 
 type Storage interface {
+	Ping(ctx context.Context) error
 	Update(t string, n string, v string) error
 	UpdateNew(t string, n string, delta *int64, value *float64) error
 	GetValue(t string, n string) (any, error)

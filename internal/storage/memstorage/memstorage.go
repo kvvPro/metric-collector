@@ -1,6 +1,7 @@
 package memstorage
 
 import (
+	"context"
 	"errors"
 	"strconv"
 
@@ -18,6 +19,10 @@ func NewMemStorage() MemStorage {
 		Gauges:   make(map[string]float64),
 		Counters: make(map[string]int64),
 	}
+}
+
+func (s *MemStorage) Ping(ctx context.Context) error {
+	return nil
 }
 
 func (s *MemStorage) Update(t string, n string, v string) error {

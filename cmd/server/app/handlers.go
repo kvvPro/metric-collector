@@ -113,11 +113,12 @@ func GzipMiddleware(h http.Handler) http.Handler {
 
 func (srv *Server) PingHandle(w http.ResponseWriter, r *http.Request) {
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1500*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	err := srv.Ping(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	body := "OK!"
