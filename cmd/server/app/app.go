@@ -14,19 +14,22 @@ type Server struct {
 	StoreInterval   int
 	FileStoragePath string
 	Restore         bool
+	DBConnection    string
 }
 
 func NewServer(store storage.Storage,
 	address string,
 	storeInterval int,
 	filePath string,
-	restore bool) *Server {
+	restore bool,
+	dbconn string) *Server {
 	return &Server{
 		storage:         store,
 		Address:         address,
 		StoreInterval:   storeInterval,
 		FileStoragePath: filePath,
 		Restore:         restore,
+		DBConnection:    dbconn,
 	}
 }
 
