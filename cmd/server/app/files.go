@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"os"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"
@@ -25,7 +24,7 @@ func (srv *Server) ReadFromFile() ([]metrics.Metric, error) {
 		return nil, err
 	}
 	m := make([]metrics.Metric, 0)
-	reader := io.NopCloser(bytes.NewReader(data))
+	reader := bytes.NewReader(data)
 	if err := json.NewDecoder(reader).Decode(&m); err != nil {
 		Sugar.Infoln("Read from file failed: ", err.Error())
 		return nil, err

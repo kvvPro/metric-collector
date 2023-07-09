@@ -20,14 +20,14 @@ func main() {
 
 	agentFlags := config.Initialize()
 	agent, err := client.NewClient(agentFlags.PollInterval, agentFlags.ReportInterval,
-		agentFlags.Host, agentFlags.Port, "text/plain")
+		agentFlags.Address, "text/plain")
 	if err != nil {
 		panic(err)
 	}
 
 	client.Sugar.Infow(
 		"Starting client",
-		"addr", agentFlags.Host+":"+agentFlags.Port,
+		"addr", agentFlags.Address,
 	)
 
 	agent.Run()

@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"
+
 	"go.uber.org/zap"
 )
 
@@ -21,7 +23,7 @@ type Agent interface {
 	PushMetrics()
 }
 
-type IMetric interface {
+type Metric interface {
 	GetName() string
 	GetType() string
 	GetValue() any
@@ -38,18 +40,16 @@ type Client struct {
 	Metrics        Metrics
 	pollInterval   int
 	reportInterval int
-	host           string
-	port           string
+	Address        string
 	contentType    string
 }
 
-func NewClient(pollInterval int, reportInterval int, host string, port string, contentType string) (*Client, error) {
+func NewClient(pollInterval int, reportInterval int, address string, contentType string) (*Client, error) {
 	return &Client{
 		Metrics:        Metrics{},
 		pollInterval:   pollInterval,
 		reportInterval: reportInterval,
-		host:           host,
-		port:           port,
+		Address:        address,
 		contentType:    contentType,
 	}, nil
 }
@@ -71,21 +71,26 @@ func (cli *Client) PushMetrics() {
 func (cli *Client) PushMetricsJSON() {
 	mslice := DeepFieldsNew(cli.Metrics)
 
-	cli.updateMetricsJSON(mslice)
+	err := cli.updateMetricsJSON(mslice)
+	if err != nil {
+		panic(err)
+	}
+	// обнуляем PollCount
+	cli.Metrics.PollCount = 0
 }
 
 func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
 	client := &http.Client{}
-	url := "http://" + cli.host + ":" + cli.port + "/update/"
+	url := "http://" + cli.Address + "/update/"
 
 	for _, m := range allMetrics {
 		bodyBuffer := new(bytes.Buffer)
-		// gzb := gzip.NewWriter(bodyBuffer)
-		json.NewEncoder(bodyBuffer).Encode(m)
-		// err := gzb.Close()
-		// if err != nil {
-		// 	panic(err)
-		// }
+		gzb := gzip.NewWriter(bodyBuffer)
+		json.NewEncoder(gzb).Encode(m)
+		err := gzb.Close()
+		if err != nil {
+			panic(err)
+		}
 
 		request, err := http.NewRequest(http.MethodPost, url, bodyBuffer)
 		if err != nil {
@@ -94,9 +99,8 @@ func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
 		Sugar.Infoln("-----------NEW REQUEST---------------")
 		Sugar.Infoln("client-request: ", bodyBuffer.String())
 
-		request.Header.Set("Content-Type", "application/json")
 		request.Header.Set("Connection", "Keep-Alive")
-		// request.Header.Set("Content-Encoding", "gzip")
+		request.Header.Set("Content-Encoding", "gzip")
 		response, err := client.Do(request)
 		if err != nil {
 			Sugar.Infoln("Error response: ", err.Error())
@@ -108,50 +112,36 @@ func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
 		if err != nil {
 			panic(err)
 		}
-		Sugar.Infoln("Request body was read")
+		Sugar.Infoln("Response body was read")
 
-		Sugar.Infoln("client-response: ", string(dataResponse[:]))
+		Sugar.Infoln("client-response: ", string(dataResponse))
 		Sugar.Infoln(
 			"uri", request.RequestURI,
 			"method", request.Method,
-			"status", response.Status, // получаем перехваченный код статуса ответа
+			"status", response.Status, // получаем код статуса ответа
 		)
 
-		_, serr := io.Copy(io.Discard, response.Body)
 		defer response.Body.Close()
-		if serr != nil {
-			panic(serr)
-		}
 	}
 
 	return nil
 }
 
-func (cli *Client) updateMetric(metric IMetric) error {
+func (cli *Client) updateMetric(metric Metric) error {
 	client := &http.Client{}
 	// metric := m.(Metric)
 	metricType := metric.GetTypeForQuery()
 	metricName := metric.GetName()
 	metricValue := metric.GetValue()
-	url := "http://" + cli.host + ":" + cli.port + "/update/" +
+	url := "http://" + cli.Address + "/update/" +
 		metricType + "/" + metricName + "/" + fmt.Sprintf("%v", metricValue)
 
 	var body []byte
-	// bodyBuffer := new(bytes.Buffer)
-	// gzb := gzip.NewWriter(bodyBuffer)
-	// _, err := gzb.Write([]byte(body))
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// err = gzb.Close()
-	// if err != nil {
-	// 	panic(err)
-	// }
 	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
 	if err != nil {
 		panic(err)
 	}
-	request.Header.Set("Content-Type", cli.contentType)
+
 	request.Header.Set("Content-Encoding", "gzip")
 	response, err := client.Do(request)
 	if err != nil {
