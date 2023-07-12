@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"time"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"
@@ -13,20 +14,27 @@ type Server struct {
 	StoreInterval   int
 	FileStoragePath string
 	Restore         bool
+	DBConnection    string
 }
 
 func NewServer(store storage.Storage,
 	address string,
 	storeInterval int,
 	filePath string,
-	restore bool) *Server {
+	restore bool,
+	dbconn string) *Server {
 	return &Server{
 		storage:         store,
 		Address:         address,
 		StoreInterval:   storeInterval,
 		FileStoragePath: filePath,
 		Restore:         restore,
+		DBConnection:    dbconn,
 	}
+}
+
+func (srv *Server) Ping(ctx context.Context) error {
+	return srv.storage.Ping(ctx)
 }
 
 func (srv *Server) AddMetric(metricType string, metricName string, metricValue string) error {

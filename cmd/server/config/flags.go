@@ -13,6 +13,7 @@ type ServerFlags struct {
 	StoreInterval   int    `env:"STORE_INTERVAL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	Restore         bool   `env:"RESTORE"`
+	DBConnection    string `env:"DATABASE_DSN"`
 }
 
 func Initialize() ServerFlags {
@@ -26,9 +27,13 @@ func Initialize() ServerFlags {
 	fmt.Printf("STORE_INTERVAL=%v", srvFlags.StoreInterval)
 	fmt.Printf("FILE_STORAGE_PATH=%v", srvFlags.FileStoragePath)
 	fmt.Printf("RESTORE=%v", srvFlags.Restore)
+	fmt.Printf("DATABASE_DSN=%v", srvFlags.DBConnection)
 	// try to get vars from Flags
 	if _, isSet := os.LookupEnv("ADDRESS"); !isSet {
 		pflag.StringVarP(&srvFlags.Address, "addr", "a", "localhost:8080", "Net address host:port")
+	}
+	if _, isSet := os.LookupEnv("DATABASE_DSN"); !isSet {
+		pflag.StringVarP(&srvFlags.DBConnection, "databaseConn", "d", "user=postgres password=postgres host=localhost port=5432 dbname=postgres sslmode=disable", "Connection string to DB: user=<> password=<> host=<> port=<> dbname=<>")
 	}
 	if _, isSet := os.LookupEnv("STORE_INTERVAL"); !isSet {
 		pflag.IntVarP(&srvFlags.StoreInterval, "storeInterval", "i", 5,
@@ -50,6 +55,7 @@ func Initialize() ServerFlags {
 	fmt.Printf("STORE_INTERVAL=%v", srvFlags.StoreInterval)
 	fmt.Printf("FILE_STORAGE_PATH=%v", srvFlags.FileStoragePath)
 	fmt.Printf("RESTORE=%v", srvFlags.Restore)
+	fmt.Printf("DATABASE_DSN=%v", srvFlags.DBConnection)
 
 	return *srvFlags
 }

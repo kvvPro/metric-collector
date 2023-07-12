@@ -8,6 +8,8 @@ import (
 
 	app "github.com/kvvPro/metric-collector/cmd/server/app"
 	"github.com/kvvPro/metric-collector/cmd/server/config"
+
+	// db "github.com/kvvPro/metric-collector/internal/storage/postgres"
 	store "github.com/kvvPro/metric-collector/internal/storage/memstorage"
 
 	"github.com/go-chi/chi/v5"
@@ -35,11 +37,13 @@ func main() {
 	app.Sugar.Infoln("after init config")
 
 	storage := store.NewMemStorage()
+	// storage := db.NewPSQLStr(srvFlags.DBConnection)
 	srv := app.NewServer(&storage,
 		srvFlags.Address,
 		srvFlags.StoreInterval,
 		srvFlags.FileStoragePath,
-		srvFlags.Restore)
+		srvFlags.Restore,
+		srvFlags.DBConnection)
 
 	app.Sugar.Infoln("before init config")
 
@@ -61,6 +65,7 @@ func startServer(srv *app.Server, srvFlags *config.ServerFlags) {
 	r.Use(app.GzipMiddleware,
 		app.WithLogging)
 	// r.Use(app.WithLogging)
+	r.Handle("/ping", http.HandlerFunc(srv.PingHandle))
 	r.Handle("/update/", http.HandlerFunc(srv.UpdateJSONHandle))
 	r.Handle("/update/*", http.HandlerFunc(srv.UpdateHandle))
 	r.Handle("/value/*", http.HandlerFunc(srv.GetValueHandle))

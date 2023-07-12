@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
 
@@ -108,6 +110,30 @@ func GzipMiddleware(h http.Handler) http.Handler {
 		h.ServeHTTP(ow, r)
 	}
 	return http.HandlerFunc(compressFunc)
+}
+
+func (srv *Server) PingHandle(w http.ResponseWriter, r *http.Request) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	dbpool, err := pgxpool.New(ctx, srv.DBConnection)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	defer dbpool.Close()
+
+	err = dbpool.Ping(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	body := "OK!"
+	io.WriteString(w, body)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (srv *Server) UpdateHandle(w http.ResponseWriter, r *http.Request) {
