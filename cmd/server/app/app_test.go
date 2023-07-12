@@ -1,10 +1,11 @@
 package app
 
 import (
-	st "metric-collector/internal/storage"
-	"metric-collector/internal/storage/memstorage"
 	"reflect"
 	"testing"
+
+	st "github.com/kvvPro/metric-collector/internal/storage"
+	"github.com/kvvPro/metric-collector/internal/storage/memstorage"
 )
 
 func TestServer_AddMetric(t *testing.T) {
@@ -43,7 +44,6 @@ func TestServer_AddMetric(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			srv := &Server{
 				storage: tt.fields.storage,
-				Port:    tt.fields.Port,
 			}
 			if err := srv.AddMetric(tt.args.metricType, tt.args.metricName, tt.args.metricValue); (err != nil) != tt.wantErr {
 				t.Errorf("Server.AddMetric() error = %v, wantErr %v", err, tt.wantErr)
@@ -54,9 +54,11 @@ func TestServer_AddMetric(t *testing.T) {
 
 func TestNewServer(t *testing.T) {
 	type args struct {
-		store st.Storage
-		host  string
-		port  string
+		store         st.Storage
+		address       string
+		storeInterval int
+		filePath      string
+		restore       bool
 	}
 	tests := []struct {
 		name    string
@@ -71,27 +73,27 @@ func TestNewServer(t *testing.T) {
 					Gauges:   make(map[string]float64),
 					Counters: make(map[string]int64),
 				},
-				host: "localhost",
-				port: "8080",
+				address:       "localhost:8080",
+				storeInterval: 200,
+				filePath:      "/tmp/val.txt",
+				restore:       true,
 			},
 			want: &Server{
 				storage: &memstorage.MemStorage{
 					Gauges:   make(map[string]float64),
 					Counters: make(map[string]int64),
 				},
-				Host: "localhost",
-				Port: "8080",
+				Address:         "localhost:8080",
+				StoreInterval:   200,
+				FileStoragePath: "/tmp/val.txt",
+				Restore:         true,
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewServer(tt.args.store, tt.args.host, tt.args.port)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewServer() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			got := NewServer(tt.args.store, tt.args.address, tt.args.storeInterval, tt.args.filePath, tt.args.restore)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewServer() = %v, want %v", got, tt.want)
 			}
@@ -121,7 +123,6 @@ func TestServer_GetMetricValue(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			srv := &Server{
 				storage: tt.fields.storage,
-				Port:    tt.fields.Port,
 			}
 			got, err := srv.GetMetricValue(tt.args.metricType, tt.args.metricName)
 			if (err != nil) != tt.wantErr {
@@ -151,7 +152,6 @@ func TestServer_GetAllMetrics(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			srv := &Server{
 				storage: tt.fields.storage,
-				Port:    tt.fields.Port,
 			}
 			if got := srv.GetAllMetrics(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Server.GetAllMetrics() = %v, want %v", got, tt.want)

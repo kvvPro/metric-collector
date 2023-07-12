@@ -1,9 +1,10 @@
 package memstorage
 
 import (
-	"metric-collector/internal/storage"
 	"reflect"
 	"testing"
+
+	"github.com/kvvPro/metric-collector/internal/storage"
 )
 
 func TestNewMemStorage(t *testing.T) {

@@ -1,9 +1,10 @@
 package client
 
 import (
-	"metric-collector/internal/metrics"
 	"reflect"
 	"testing"
+
+	"github.com/kvvPro/metric-collector/internal/metrics"
 )
 
 func TestDeepFields(t *testing.T) {

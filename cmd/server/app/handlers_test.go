@@ -2,11 +2,12 @@ package app
 
 import (
 	"io"
-	"metric-collector/internal/storage"
-	"metric-collector/internal/storage/memstorage"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/kvvPro/metric-collector/internal/storage"
+	"github.com/kvvPro/metric-collector/internal/storage/memstorage"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -64,7 +65,6 @@ func TestServer_UpdateHandle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			srv := &Server{
 				storage: tt.fields.storage,
-				Port:    tt.fields.Port,
 			}
 
 			for path, req := range tt.args {
@@ -109,7 +109,6 @@ func TestServer_GetValueHandle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			srv := &Server{
 				storage: tt.fields.storage,
-				Port:    tt.fields.Port,
 			}
 			srv.GetValueHandle(tt.args.w, tt.args.r)
 		})
@@ -136,7 +135,6 @@ func TestServer_AllMetricsHandle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			srv := &Server{
 				storage: tt.fields.storage,
-				Port:    tt.fields.Port,
 			}
 			srv.AllMetricsHandle(tt.args.w, tt.args.r)
 		})

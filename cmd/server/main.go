@@ -1,56 +1,86 @@
 package main
 
 import (
-	"fmt"
-	app "metric-collector/cmd/server/app"
-	store "metric-collector/internal/storage/memstorage"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/caarlos0/env/v8"
+	app "github.com/kvvPro/metric-collector/cmd/server/app"
+	"github.com/kvvPro/metric-collector/cmd/server/config"
+	store "github.com/kvvPro/metric-collector/internal/storage/memstorage"
+
 	"github.com/go-chi/chi/v5"
-	"github.com/spf13/pflag"
+	"go.uber.org/zap"
 )
 
 func main() {
-	addr := initialize()
-	storage := store.NewMemStorage()
-	srv, err := app.NewServer(&storage, addr.Host, addr.Port)
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+
+	logger, err := zap.NewDevelopment()
 	if err != nil {
+		// вызываем панику, если ошибка
 		panic(err)
 	}
+	defer logger.Sync()
 
-	r := chi.NewMux()
-	r.Handle("/update/*", http.HandlerFunc(srv.UpdateHandle))
-	r.Handle("/value/*", http.HandlerFunc(srv.GetValueHandle))
-	r.Handle("/", http.HandlerFunc(srv.AllMetricsHandle))
+	// делаем регистратор SugaredLogger
+	app.Sugar = *logger.Sugar()
 
-	errs := http.ListenAndServe(srv.Host+":"+srv.Port, r)
-	if errs != nil {
-		panic(errs)
+	app.Sugar.Infoln("before init config")
+
+	srvFlags := config.Initialize()
+
+	app.Sugar.Infoln("after init config")
+
+	storage := store.NewMemStorage()
+	srv := app.NewServer(&storage,
+		srvFlags.Address,
+		srvFlags.StoreInterval,
+		srvFlags.FileStoragePath,
+		srvFlags.Restore)
+
+	app.Sugar.Infoln("before init config")
+
+	go startServer(srv, &srvFlags)
+	go srv.AsyncSaving()
+
+	sigQuit := <-shutdown
+	app.Sugar.Infoln("Server shutdown by signal: ", sigQuit)
+	app.Sugar.Infoln("Try to save metrics...")
+	err = srv.SaveToFile()
+	if err != nil {
+		app.Sugar.Infoln("Save to file failed: ", err.Error())
 	}
+	app.Sugar.Infoln("Metrics saved")
 }
 
-func initialize() app.ServerFlags {
-	// try to get vars from env
-	addr := new(app.ServerFlags)
-	if err := env.Parse(addr); err != nil {
-		panic(err)
-	}
-	fmt.Println("ENV-----------")
-	fmt.Printf("ADDRESS=%v", addr.Address)
-	// try to get vars from Flags
-	if addr.Address == "" {
-		pflag.StringVarP(&addr.Address, "addr", "a", "localhost:8080", "Net address host:port")
-		pflag.Parse()
-	}
+func startServer(srv *app.Server, srvFlags *config.ServerFlags) {
+	r := chi.NewMux()
+	r.Use(app.GzipMiddleware,
+		app.WithLogging)
+	// r.Use(app.WithLogging)
+	r.Handle("/update/", http.HandlerFunc(srv.UpdateJSONHandle))
+	r.Handle("/update/*", http.HandlerFunc(srv.UpdateHandle))
+	r.Handle("/value/*", http.HandlerFunc(srv.GetValueHandle))
+	r.Handle("/value/", http.HandlerFunc(srv.GetValueJSONHandle))
+	r.Handle("/", http.HandlerFunc(srv.AllMetricsHandle))
 
-	err := addr.Set(addr.Address)
-	if err != nil {
-		panic(err)
+	app.Sugar.Infoln("before restoring values")
+
+	srv.RestoreValues()
+
+	app.Sugar.Infoln("after restoring values")
+
+	// записываем в лог, что сервер запускается
+	app.Sugar.Infow(
+		"Starting server",
+		"srvFlags", srvFlags,
+	)
+
+	if err := http.ListenAndServe(srv.Address, r); err != nil {
+		// записываем в лог ошибку, если сервер не запустился
+		app.Sugar.Fatalw(err.Error(), "event", "start server")
 	}
-
-	fmt.Println("\nFLAGS-----------")
-	fmt.Printf("ADDRESS=%v", addr.Address)
-
-	return *addr
 }
