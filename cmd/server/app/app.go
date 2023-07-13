@@ -6,6 +6,9 @@ import (
 
 	"github.com/kvvPro/metric-collector/internal/metrics"
 	"github.com/kvvPro/metric-collector/internal/storage"
+
+	mem "github.com/kvvPro/metric-collector/internal/storage/memstorage"
+	db "github.com/kvvPro/metric-collector/internal/storage/postgres"
 )
 
 type Server struct {
@@ -15,22 +18,45 @@ type Server struct {
 	FileStoragePath string
 	Restore         bool
 	DBConnection    string
+	StorageType     string
 }
 
-func NewServer(store storage.Storage,
-	address string,
+const (
+	DatabaseStorageType = "db"
+	MemStorageType      = "memory"
+)
+
+func NewServer(address string,
 	storeInterval int,
 	filePath string,
 	restore bool,
-	dbconn string) *Server {
+	dbconn string) (*Server, error) {
+
+	var t string
+	var st storage.Storage
+
+	if dbconn != "" {
+		t = DatabaseStorageType
+		newdb, err := db.NewPSQLStr(context.Background(), dbconn)
+		if err != nil {
+			return nil, err
+		}
+		st = newdb
+	} else {
+		t = MemStorageType
+		newmem := mem.NewMemStorage()
+		st = &newmem
+	}
+
 	return &Server{
-		storage:         store,
+		storage:         st,
 		Address:         address,
 		StoreInterval:   storeInterval,
 		FileStoragePath: filePath,
 		Restore:         restore,
 		DBConnection:    dbconn,
-	}
+		StorageType:     t,
+	}, nil
 }
 
 func (srv *Server) Ping(ctx context.Context) error {
@@ -46,7 +72,7 @@ func (srv *Server) AddMetric(metricType string, metricName string, metricValue s
 }
 
 func (srv *Server) AddMetricNew(m metrics.Metric) error {
-	err := srv.storage.UpdateNew(m.MType, m.ID, m.Delta, m.Value)
+	err := srv.storage.UpdateNew(context.Background(), m.MType, m.ID, m.Delta, m.Value)
 	if err != nil {
 		panic(err)
 	}
@@ -99,7 +125,10 @@ func (srv *Server) GetAllMetrics() []storage.Metric {
 	return val
 }
 func (srv *Server) GetAllMetricsNew() []*metrics.Metric {
-	val := srv.storage.GetAllMetricsNew()
+	val, err := srv.storage.GetAllMetricsNew(context.Background())
+	if err != nil {
+		panic(err)
+	}
 	return val
 }
 

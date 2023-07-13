@@ -9,9 +9,6 @@ import (
 	app "github.com/kvvPro/metric-collector/cmd/server/app"
 	"github.com/kvvPro/metric-collector/cmd/server/config"
 
-	// db "github.com/kvvPro/metric-collector/internal/storage/postgres"
-	store "github.com/kvvPro/metric-collector/internal/storage/memstorage"
-
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
@@ -36,14 +33,15 @@ func main() {
 
 	app.Sugar.Infoln("after init config")
 
-	storage := store.NewMemStorage()
-	// storage := db.NewPSQLStr(srvFlags.DBConnection)
-	srv := app.NewServer(&storage,
-		srvFlags.Address,
+	srv, err := app.NewServer(srvFlags.Address,
 		srvFlags.StoreInterval,
 		srvFlags.FileStoragePath,
 		srvFlags.Restore,
 		srvFlags.DBConnection)
+
+	if err != nil {
+		app.Sugar.Fatalw(err.Error(), "event", "create server")
+	}
 
 	app.Sugar.Infoln("before init config")
 

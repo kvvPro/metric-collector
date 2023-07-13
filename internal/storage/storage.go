@@ -16,8 +16,8 @@ type Metric interface {
 type Storage interface {
 	Ping(ctx context.Context) error
 	Update(t string, n string, v string) error
-	UpdateNew(t string, n string, delta *int64, value *float64) error
+	UpdateNew(ctx context.Context, t string, n string, delta *int64, value *float64) error
 	GetValue(t string, n string) (any, error)
 	GetAllMetrics() []Metric
-	GetAllMetricsNew() []*metrics.Metric
+	GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, error)
 }

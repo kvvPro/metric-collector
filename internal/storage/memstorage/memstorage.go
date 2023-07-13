@@ -40,7 +40,7 @@ func (s *MemStorage) Update(t string, n string, v string) error {
 	return nil
 }
 
-func (s *MemStorage) UpdateNew(t string, n string, delta *int64, value *float64) error {
+func (s *MemStorage) UpdateNew(ctx context.Context, t string, n string, delta *int64, value *float64) error {
 	if t == metrics.MetricTypeGauge {
 		if value == nil {
 			val := new(float64)
@@ -95,7 +95,7 @@ func (s *MemStorage) GetAllMetrics() []storage.Metric {
 	return m
 }
 
-func (s *MemStorage) GetAllMetricsNew() []*metrics.Metric {
+func (s *MemStorage) GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, error) {
 	m := []*metrics.Metric{}
 
 	for name, val := range s.Counters {
@@ -110,5 +110,5 @@ func (s *MemStorage) GetAllMetricsNew() []*metrics.Metric {
 		m = append(m, c)
 	}
 
-	return m
+	return m, nil
 }
