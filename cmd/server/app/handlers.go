@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	mc "github.com/kvvPro/metric-collector/internal/metrics"
 	"go.uber.org/zap"
 )
 
@@ -258,7 +259,7 @@ func (srv *Server) AllMetricsHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metrics := srv.GetAllMetrics()
+	metrics := srv.GetAllMetricsNew()
 	body := `<html>
 				<head>
 				<title></title>
@@ -279,7 +280,11 @@ func (srv *Server) AllMetricsHandle(w http.ResponseWriter, r *http.Request) {
 			</html>`
 	rows := ""
 	for _, el := range metrics {
-		rows += fmt.Sprintf("<tr><th>%v</th><th>%v</th></tr>", el.GetName(), el.GetValue())
+		if el.MType == mc.MetricTypeCounter {
+			rows += fmt.Sprintf("<tr><th>%v</th><th>%v</th></tr>", el.ID, *(el.Delta))
+		} else {
+			rows += fmt.Sprintf("<tr><th>%v</th><th>%v</th></tr>", el.ID, *(el.Value))
+		}
 	}
 
 	body = strings.ReplaceAll(body, "%rows", rows)

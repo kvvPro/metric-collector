@@ -81,8 +81,8 @@ func (s *Settings) UpdateNew(ctx context.Context, t string, n string, delta *int
 	switch err := result.Scan(&metricID, &metric.MType, &metric.ID); err {
 	case pgx.ErrNoRows:
 		// сначала добавим саму метрику
-		insert_metric := getInsertMetricQuery()
-		insertRes, err := dbpool.Exec(ctx, insert_metric, t, n)
+		insertMetric := getInsertMetricQuery()
+		insertRes, err := dbpool.Exec(ctx, insertMetric, t, n)
 		if err != nil {
 			return err
 		}

@@ -149,7 +149,7 @@ func (srv *Server) AsyncSaving() {
 }
 
 func (srv *Server) RestoreValues() {
-	if srv.Restore {
+	if srv.Restore && srv.StorageType == "memory" {
 		m, err := srv.ReadFromFile()
 		if err != nil {
 			Sugar.Infoln("Read values failed: ", err.Error())

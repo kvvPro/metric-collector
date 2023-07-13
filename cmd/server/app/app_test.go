@@ -60,7 +60,7 @@ func TestNewServer(t *testing.T) {
 		filePath      string
 		restore       bool
 		dbconn        string
-		storageType   string
+		// storageType   string
 	}
 	tests := []struct {
 		name    string
