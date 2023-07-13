@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	mc "github.com/kvvPro/metric-collector/internal/metrics"
 	"go.uber.org/zap"
 )
 
@@ -108,6 +111,30 @@ func GzipMiddleware(h http.Handler) http.Handler {
 		h.ServeHTTP(ow, r)
 	}
 	return http.HandlerFunc(compressFunc)
+}
+
+func (srv *Server) PingHandle(w http.ResponseWriter, r *http.Request) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	dbpool, err := pgxpool.New(ctx, srv.DBConnection)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	defer dbpool.Close()
+
+	err = dbpool.Ping(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	body := "OK!"
+	io.WriteString(w, body)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (srv *Server) UpdateHandle(w http.ResponseWriter, r *http.Request) {
@@ -232,7 +259,7 @@ func (srv *Server) AllMetricsHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metrics := srv.GetAllMetrics()
+	metrics := srv.GetAllMetricsNew()
 	body := `<html>
 				<head>
 				<title></title>
@@ -253,7 +280,11 @@ func (srv *Server) AllMetricsHandle(w http.ResponseWriter, r *http.Request) {
 			</html>`
 	rows := ""
 	for _, el := range metrics {
-		rows += fmt.Sprintf("<tr><th>%v</th><th>%v</th></tr>", el.GetName(), el.GetValue())
+		if el.MType == mc.MetricTypeCounter {
+			rows += fmt.Sprintf("<tr><th>%v</th><th>%v</th></tr>", el.ID, *(el.Delta))
+		} else {
+			rows += fmt.Sprintf("<tr><th>%v</th><th>%v</th></tr>", el.ID, *(el.Value))
+		}
 	}
 
 	body = strings.ReplaceAll(body, "%rows", rows)

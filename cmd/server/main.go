@@ -8,7 +8,6 @@ import (
 
 	app "github.com/kvvPro/metric-collector/cmd/server/app"
 	"github.com/kvvPro/metric-collector/cmd/server/config"
-	store "github.com/kvvPro/metric-collector/internal/storage/memstorage"
 
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
@@ -34,12 +33,15 @@ func main() {
 
 	app.Sugar.Infoln("after init config")
 
-	storage := store.NewMemStorage()
-	srv := app.NewServer(&storage,
-		srvFlags.Address,
+	srv, err := app.NewServer(srvFlags.Address,
 		srvFlags.StoreInterval,
 		srvFlags.FileStoragePath,
-		srvFlags.Restore)
+		srvFlags.Restore,
+		srvFlags.DBConnection)
+
+	if err != nil {
+		app.Sugar.Fatalw(err.Error(), "event", "create server")
+	}
 
 	app.Sugar.Infoln("before init config")
 
@@ -61,6 +63,7 @@ func startServer(srv *app.Server, srvFlags *config.ServerFlags) {
 	r.Use(app.GzipMiddleware,
 		app.WithLogging)
 	// r.Use(app.WithLogging)
+	r.Handle("/ping", http.HandlerFunc(srv.PingHandle))
 	r.Handle("/update/", http.HandlerFunc(srv.UpdateJSONHandle))
 	r.Handle("/update/*", http.HandlerFunc(srv.UpdateHandle))
 	r.Handle("/value/*", http.HandlerFunc(srv.GetValueHandle))
