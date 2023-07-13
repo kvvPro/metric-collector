@@ -60,6 +60,7 @@ func TestNewServer(t *testing.T) {
 		filePath      string
 		restore       bool
 		dbconn        string
+		storageType   string
 	}
 	tests := []struct {
 		name    string
@@ -78,7 +79,8 @@ func TestNewServer(t *testing.T) {
 				storeInterval: 200,
 				filePath:      "/tmp/val.txt",
 				restore:       true,
-				dbconn:        "user=postgres password=postgres host=localhost port=5432 dbname=postgres sslmode=disable",
+				// dbconn:        "user=postgres password=postgres host=localhost port=5432 dbname=postgres sslmode=disable",
+				// storageType:   "db",
 			},
 			want: &Server{
 				storage: &memstorage.MemStorage{
@@ -89,7 +91,8 @@ func TestNewServer(t *testing.T) {
 				StoreInterval:   200,
 				FileStoragePath: "/tmp/val.txt",
 				Restore:         true,
-				DBConnection:    "user=postgres password=postgres host=localhost port=5432 dbname=postgres sslmode=disable",
+				// DBConnection:    "user=postgres password=postgres host=localhost port=5432 dbname=postgres sslmode=disable",
+				StorageType: "memory",
 			},
 			wantErr: false,
 		},

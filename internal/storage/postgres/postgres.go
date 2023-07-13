@@ -76,44 +76,44 @@ func (s *Settings) UpdateNew(ctx context.Context, t string, n string, delta *int
 	query := getSearchMetricByNameQuery()
 
 	var metric metrics.Metric
-	var metric_id int64
+	var metricID int64
 	result := dbpool.QueryRow(ctx, query, n)
-	switch err := result.Scan(&metric_id, &metric.MType, &metric.ID); err {
+	switch err := result.Scan(&metricID, &metric.MType, &metric.ID); err {
 	case pgx.ErrNoRows:
 		// сначала добавим саму метрику
 		insert_metric := getInsertMetricQuery()
-		insert_res, err := dbpool.Exec(ctx, insert_metric, t, n)
+		insertRes, err := dbpool.Exec(ctx, insert_metric, t, n)
 		if err != nil {
 			return err
 		}
-		if insert_res.RowsAffected() == 0 {
+		if insertRes.RowsAffected() == 0 {
 			return errors.New("metric not added")
 		}
 
 		// перечитаем id добавленной метрики
 		result := dbpool.QueryRow(ctx, query, n)
-		if err := result.Scan(&metric_id, &metric.MType, &metric.ID); err != nil {
+		if err := result.Scan(&metricID, &metric.MType, &metric.ID); err != nil {
 			return err
 		}
 
 		// метрики нет, надо добавлять
 		if t == metrics.MetricTypeCounter {
 			insert := getInsertCounterQuery()
-			insert_res, err := dbpool.Exec(ctx, insert, metric_id, *delta)
+			insertRes, err := dbpool.Exec(ctx, insert, metricID, *delta)
 			if err != nil {
 				return err
 			}
-			if insert_res.RowsAffected() == 0 {
+			if insertRes.RowsAffected() == 0 {
 				return errors.New("metric not added")
 			}
 			transaction.Commit(ctx)
 		} else if t == metrics.MetricTypeGauge {
 			insert := getInsertGaugeQuery()
-			insert_res, err := dbpool.Exec(ctx, insert, metric_id, *value)
+			insertRes, err := dbpool.Exec(ctx, insert, metricID, *value)
 			if err != nil {
 				return err
 			}
-			if insert_res.RowsAffected() == 0 {
+			if insertRes.RowsAffected() == 0 {
 				return errors.New("metric not added")
 			}
 			transaction.Commit(ctx)
@@ -123,21 +123,21 @@ func (s *Settings) UpdateNew(ctx context.Context, t string, n string, delta *int
 		// метрика есть - апдейтим
 		if t == metrics.MetricTypeCounter {
 			update := getUpdateCounterQuery()
-			update_res, err := dbpool.Exec(ctx, update, *delta, metric_id)
+			updateRes, err := dbpool.Exec(ctx, update, *delta, metricID)
 			if err != nil {
 				return err
 			}
-			if update_res.RowsAffected() == 0 {
+			if updateRes.RowsAffected() == 0 {
 				return errors.New("metric not added")
 			}
 			transaction.Commit(ctx)
 		} else if t == metrics.MetricTypeGauge {
 			update := getUpdateGaugeQuery()
-			update_res, err := dbpool.Exec(ctx, update, *value, metric_id)
+			updateRes, err := dbpool.Exec(ctx, update, *value, metricID)
 			if err != nil {
 				return err
 			}
-			if update_res.RowsAffected() == 0 {
+			if updateRes.RowsAffected() == 0 {
 				return errors.New("metric not added")
 			}
 			transaction.Commit(ctx)
