@@ -33,7 +33,8 @@ func Initialize() ServerFlags {
 		pflag.StringVarP(&srvFlags.Address, "addr", "a", "localhost:8080", "Net address host:port")
 	}
 	if _, isSet := os.LookupEnv("DATABASE_DSN"); !isSet {
-		pflag.StringVarP(&srvFlags.DBConnection, "databaseConn", "d", "user=postgres password=postgres host=localhost port=5432 dbname=postgres sslmode=disable", "Connection string to DB: user=<> password=<> host=<> port=<> dbname=<>")
+		// pflag.StringVarP(&srvFlags.DBConnection, "databaseConn", "d", "user=postgres password=postgres host=localhost port=5432 dbname=postgres sslmode=disable", "Connection string to DB: user=<> password=<> host=<> port=<> dbname=<>")
+		pflag.StringVarP(&srvFlags.DBConnection, "databaseConn", "d", "", "Connection string to DB: user=<> password=<> host=<> port=<> dbname=<>")
 	}
 	if _, isSet := os.LookupEnv("STORE_INTERVAL"); !isSet {
 		pflag.IntVarP(&srvFlags.StoreInterval, "storeInterval", "i", 5,
