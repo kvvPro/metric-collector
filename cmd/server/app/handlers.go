@@ -199,19 +199,19 @@ func (srv *Server) UpdateBatchJSONHandle(w http.ResponseWriter, r *http.Request)
 
 	// w.Header().Set("Content-Type", "application/json")
 
-	// updatedMetrics := srv.GetRequestedValues(requestedMetrics)
-	// bodyBuffer := new(bytes.Buffer)
-	// if len(updatedMetrics) == 1 {
-	// 	json.NewEncoder(bodyBuffer).Encode(updatedMetrics[0])
-	// } else {
-	// 	json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
-	// }
-	// body := bodyBuffer.String()
+	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
+	bodyBuffer := new(bytes.Buffer)
+	if len(updatedMetrics) == 1 {
+		json.NewEncoder(bodyBuffer).Encode(updatedMetrics[0])
+	} else {
+		json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
+	}
+	body := bodyBuffer.String()
 
-	// Sugar.Infoln("body-response: ", body)
+	Sugar.Infoln("body-response: ", body)
 
-	// io.WriteString(w, body)
-	// w.Write([]byte("{}"))
+	testbody := "OK!"
+	io.WriteString(w, testbody)
 	w.WriteHeader(http.StatusOK)
 }
 
