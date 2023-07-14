@@ -10,7 +10,7 @@ import (
 
 func (srv *Server) SaveToFile() error {
 	// сериализуем структуру в JSON формат
-	data, err := json.MarshalIndent(srv.storage.GetAllMetricsNew(), "", "   ")
+	data, err := json.MarshalIndent(srv.GetAllMetricsNew(), "", "   ")
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	mc "github.com/kvvPro/metric-collector/internal/metrics"
 	"go.uber.org/zap"
 )
 
@@ -110,6 +113,30 @@ func GzipMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(compressFunc)
 }
 
+func (srv *Server) PingHandle(w http.ResponseWriter, r *http.Request) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	dbpool, err := pgxpool.New(ctx, srv.DBConnection)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	defer dbpool.Close()
+
+	err = dbpool.Ping(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	body := "OK!"
+	io.WriteString(w, body)
+	w.WriteHeader(http.StatusOK)
+}
+
 func (srv *Server) UpdateHandle(w http.ResponseWriter, r *http.Request) {
 	params, isValid := isValidUpdateParams(r, w)
 	if !isValid {
@@ -156,6 +183,35 @@ func (srv *Server) UpdateJSONHandle(w http.ResponseWriter, r *http.Request) {
 	Sugar.Infoln("body-response: ", body)
 
 	io.WriteString(w, body)
+	w.WriteHeader(http.StatusOK)
+}
+
+func (srv *Server) UpdateBatchJSONHandle(w http.ResponseWriter, r *http.Request) {
+	requestedMetrics, isValid := isValidUpdateJSONParams(r, w)
+	if !isValid {
+		return
+	}
+
+	err := srv.AddMetricsBatch(requestedMetrics)
+	if err != nil {
+		panic(err)
+	}
+
+	// w.Header().Set("Content-Type", "application/json")
+
+	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
+	bodyBuffer := new(bytes.Buffer)
+	if len(updatedMetrics) == 1 {
+		json.NewEncoder(bodyBuffer).Encode(updatedMetrics[0])
+	} else {
+		json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
+	}
+	body := bodyBuffer.String()
+
+	Sugar.Infoln("body-response: ", body)
+
+	testbody := "OK!"
+	io.WriteString(w, testbody)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -232,7 +288,7 @@ func (srv *Server) AllMetricsHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metrics := srv.GetAllMetrics()
+	metrics := srv.GetAllMetricsNew()
 	body := `<html>
 				<head>
 				<title></title>
@@ -253,7 +309,11 @@ func (srv *Server) AllMetricsHandle(w http.ResponseWriter, r *http.Request) {
 			</html>`
 	rows := ""
 	for _, el := range metrics {
-		rows += fmt.Sprintf("<tr><th>%v</th><th>%v</th></tr>", el.GetName(), el.GetValue())
+		if el.MType == mc.MetricTypeCounter {
+			rows += fmt.Sprintf("<tr><th>%v</th><th>%v</th></tr>", el.ID, *(el.Delta))
+		} else {
+			rows += fmt.Sprintf("<tr><th>%v</th><th>%v</th></tr>", el.ID, *(el.Value))
+		}
 	}
 
 	body = strings.ReplaceAll(body, "%rows", rows)

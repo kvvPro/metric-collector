@@ -1,0 +1,24 @@
+version: "3.4"
+
+services:
+  metric-db:
+    image: postgres:14-bullseye
+    restart: always
+    volumes:
+      - metric-data:/var/lib/postgresql/data
+    env_file:
+      - .env
+    ports:
+      - 5432:5432
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    ports:
+      - 10780:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+
+volumes:
+  metric-data:

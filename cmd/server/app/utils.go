@@ -31,9 +31,11 @@ func isValidURL(url string) bool {
 func isValidURLJSON(url string) bool {
 	// update
 	re := regexp.MustCompile(`^/update/$`)
+	// batch update
+	upd := regexp.MustCompile(`^/updates/$`)
 	// get value
 	reget := regexp.MustCompile(`^/value/$`)
-	return re.MatchString(url) || reget.MatchString(url)
+	return re.MatchString(url) || reget.MatchString(url) || upd.MatchString(url)
 }
 
 func isNameMissing(url string) bool {

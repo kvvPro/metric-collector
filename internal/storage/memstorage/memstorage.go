@@ -1,6 +1,7 @@
 package memstorage
 
 import (
+	"context"
 	"errors"
 	"strconv"
 
@@ -20,6 +21,10 @@ func NewMemStorage() MemStorage {
 	}
 }
 
+func (s *MemStorage) Ping(ctx context.Context) error {
+	return nil
+}
+
 func (s *MemStorage) Update(t string, n string, v string) error {
 	if t == metrics.MetricTypeGauge {
 		if fval, err := strconv.ParseFloat(v, 64); err == nil {
@@ -35,7 +40,7 @@ func (s *MemStorage) Update(t string, n string, v string) error {
 	return nil
 }
 
-func (s *MemStorage) UpdateNew(t string, n string, delta *int64, value *float64) error {
+func (s *MemStorage) UpdateNew(ctx context.Context, t string, n string, delta *int64, value *float64) error {
 	if t == metrics.MetricTypeGauge {
 		if value == nil {
 			val := new(float64)
@@ -53,6 +58,30 @@ func (s *MemStorage) UpdateNew(t string, n string, delta *int64, value *float64)
 	} else {
 		return errors.New("uknown metric type")
 	}
+	return nil
+}
+
+func (s *MemStorage) UpdateBatch(ctx context.Context, m []metrics.Metric) error {
+	for _, el := range m {
+		if el.MType == metrics.MetricTypeGauge {
+			if el.Value == nil {
+				val := new(float64)
+				s.Gauges[el.ID] = *val
+			} else {
+				s.Gauges[el.ID] = *(el.Value)
+			}
+		} else if el.MType == metrics.MetricTypeCounter {
+			if el.Delta == nil {
+				val := new(int64)
+				s.Counters[el.ID] = *val
+			} else {
+				s.Counters[el.ID] += *(el.Delta)
+			}
+		} else {
+			return errors.New("uknown metric type")
+		}
+	}
+
 	return nil
 }
 
@@ -90,7 +119,7 @@ func (s *MemStorage) GetAllMetrics() []storage.Metric {
 	return m
 }
 
-func (s *MemStorage) GetAllMetricsNew() []*metrics.Metric {
+func (s *MemStorage) GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, error) {
 	m := []*metrics.Metric{}
 
 	for name, val := range s.Counters {
@@ -105,5 +134,5 @@ func (s *MemStorage) GetAllMetricsNew() []*metrics.Metric {
 		m = append(m, c)
 	}
 
-	return m
+	return m, nil
 }
