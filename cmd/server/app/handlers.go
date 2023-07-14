@@ -186,6 +186,34 @@ func (srv *Server) UpdateJSONHandle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func (srv *Server) UpdateBatchJSONHandle(w http.ResponseWriter, r *http.Request) {
+	requestedMetrics, isValid := isValidUpdateJSONParams(r, w)
+	if !isValid {
+		return
+	}
+
+	err := srv.AddMetricsBatch(requestedMetrics)
+	if err != nil {
+		panic(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
+	bodyBuffer := new(bytes.Buffer)
+	if len(updatedMetrics) == 1 {
+		json.NewEncoder(bodyBuffer).Encode(updatedMetrics[0])
+	} else {
+		json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
+	}
+	body := bodyBuffer.String()
+
+	Sugar.Infoln("body-response: ", body)
+
+	io.WriteString(w, body)
+	w.WriteHeader(http.StatusOK)
+}
+
 func (srv *Server) GetValueJSONHandle(w http.ResponseWriter, r *http.Request) {
 	requestedMetrics, isValid := isValidGetValueJSONParams(r, w)
 	if !isValid {

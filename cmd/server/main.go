@@ -64,6 +64,7 @@ func startServer(srv *app.Server, srvFlags *config.ServerFlags) {
 		app.WithLogging)
 	// r.Use(app.WithLogging)
 	r.Handle("/ping", http.HandlerFunc(srv.PingHandle))
+	r.Handle("/updates/", http.HandlerFunc(srv.UpdateBatchJSONHandle))
 	r.Handle("/update/", http.HandlerFunc(srv.UpdateJSONHandle))
 	r.Handle("/update/*", http.HandlerFunc(srv.UpdateHandle))
 	r.Handle("/value/*", http.HandlerFunc(srv.GetValueHandle))

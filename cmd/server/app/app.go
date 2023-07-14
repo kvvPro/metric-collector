@@ -86,6 +86,21 @@ func (srv *Server) AddMetricNew(m metrics.Metric) error {
 	return nil
 }
 
+func (srv *Server) AddMetricsBatch(m []metrics.Metric) error {
+	err := srv.storage.UpdateBatch(context.Background(), m)
+	if err != nil {
+		panic(err)
+	}
+	if srv.StoreInterval == 0 {
+		err = srv.SaveToFile()
+		if err != nil {
+			Sugar.Infoln("Save to file failed: ", err.Error())
+		}
+	}
+
+	return nil
+}
+
 func (srv *Server) GetMetricValue(metricType string, metricName string) (any, error) {
 	val, err := srv.storage.GetValue(metricType, metricName)
 	return val, err

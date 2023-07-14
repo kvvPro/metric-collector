@@ -61,6 +61,30 @@ func (s *MemStorage) UpdateNew(ctx context.Context, t string, n string, delta *i
 	return nil
 }
 
+func (s *MemStorage) UpdateBatch(ctx context.Context, m []metrics.Metric) error {
+	for _, el := range m {
+		if el.MType == metrics.MetricTypeGauge {
+			if el.Value == nil {
+				val := new(float64)
+				s.Gauges[el.ID] = *val
+			} else {
+				s.Gauges[el.ID] = *(el.Value)
+			}
+		} else if el.MType == metrics.MetricTypeCounter {
+			if el.Delta == nil {
+				val := new(int64)
+				s.Counters[el.ID] = *val
+			} else {
+				s.Counters[el.ID] += *(el.Delta)
+			}
+		} else {
+			return errors.New("uknown metric type")
+		}
+	}
+
+	return nil
+}
+
 func (s *MemStorage) GetValue(t string, n string) (any, error) {
 	var val any
 	var exists bool

@@ -17,6 +17,7 @@ type Storage interface {
 	Ping(ctx context.Context) error
 	Update(t string, n string, v string) error
 	UpdateNew(ctx context.Context, t string, n string, delta *int64, value *float64) error
+	UpdateBatch(ctx context.Context, m []metrics.Metric) error
 	GetValue(t string, n string) (any, error)
 	GetAllMetrics() []Metric
 	GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, error)

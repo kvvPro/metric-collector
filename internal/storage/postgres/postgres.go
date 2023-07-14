@@ -57,7 +57,7 @@ func (s *Settings) Update(t string, n string, v string) error {
 	return nil
 }
 
-func (s *Settings) UpdateNew(ctx context.Context, t string, n string, delta *int64, value *float64) error {
+func (s *Settings) UpdateNew(ctx context.Context, mtype string, mname string, delta *int64, value *float64) error {
 
 	dbpool, err := pgxpool.New(ctx, s.ConnStr)
 	if err != nil {
@@ -72,17 +72,59 @@ func (s *Settings) UpdateNew(ctx context.Context, t string, n string, delta *int
 	}
 	defer transaction.Rollback(ctx)
 
+	err = updateMetric(ctx, dbpool, mtype, mname, delta, value)
+	if err != nil {
+		return err
+	}
+
+	transaction.Commit(ctx)
+
+	return nil
+}
+
+func (s *Settings) UpdateBatch(ctx context.Context, m []metrics.Metric) error {
+	dbpool, err := pgxpool.New(ctx, s.ConnStr)
+	if err != nil {
+		return err
+	}
+
+	defer dbpool.Close()
+
+	transaction, err := dbpool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer transaction.Rollback(ctx)
+
+	for _, el := range m {
+		err = updateMetric(ctx, dbpool, el.MType, el.ID, el.Delta, el.Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	transaction.Commit(ctx)
+
+	return nil
+}
+
+func updateMetric(ctx context.Context,
+	dbpool *pgxpool.Pool,
+	mtype string,
+	mname string,
+	delta *int64,
+	value *float64) error {
 	// определим, есть ли запись с такой метрикой
 	query := getSearchMetricByNameQuery()
 
 	var metric metrics.Metric
 	var metricID int64
-	result := dbpool.QueryRow(ctx, query, n)
+	result := dbpool.QueryRow(ctx, query, mname)
 	switch err := result.Scan(&metricID, &metric.MType, &metric.ID); err {
 	case pgx.ErrNoRows:
 		// сначала добавим саму метрику
 		insertMetric := getInsertMetricQuery()
-		insertRes, err := dbpool.Exec(ctx, insertMetric, t, n)
+		insertRes, err := dbpool.Exec(ctx, insertMetric, mtype, mname)
 		if err != nil {
 			return err
 		}
@@ -91,13 +133,13 @@ func (s *Settings) UpdateNew(ctx context.Context, t string, n string, delta *int
 		}
 
 		// перечитаем id добавленной метрики
-		result := dbpool.QueryRow(ctx, query, n)
+		result := dbpool.QueryRow(ctx, query, mname)
 		if err := result.Scan(&metricID, &metric.MType, &metric.ID); err != nil {
 			return err
 		}
 
 		// метрики нет, надо добавлять
-		if t == metrics.MetricTypeCounter {
+		if mtype == metrics.MetricTypeCounter {
 			insert := getInsertCounterQuery()
 			insertRes, err := dbpool.Exec(ctx, insert, metricID, *delta)
 			if err != nil {
@@ -106,8 +148,7 @@ func (s *Settings) UpdateNew(ctx context.Context, t string, n string, delta *int
 			if insertRes.RowsAffected() == 0 {
 				return errors.New("metric not added")
 			}
-			transaction.Commit(ctx)
-		} else if t == metrics.MetricTypeGauge {
+		} else if mtype == metrics.MetricTypeGauge {
 			insert := getInsertGaugeQuery()
 			insertRes, err := dbpool.Exec(ctx, insert, metricID, *value)
 			if err != nil {
@@ -116,12 +157,11 @@ func (s *Settings) UpdateNew(ctx context.Context, t string, n string, delta *int
 			if insertRes.RowsAffected() == 0 {
 				return errors.New("metric not added")
 			}
-			transaction.Commit(ctx)
 		}
 
 	case nil:
 		// метрика есть - апдейтим
-		if t == metrics.MetricTypeCounter {
+		if mtype == metrics.MetricTypeCounter {
 			update := getUpdateCounterQuery()
 			updateRes, err := dbpool.Exec(ctx, update, *delta, metricID)
 			if err != nil {
@@ -130,8 +170,7 @@ func (s *Settings) UpdateNew(ctx context.Context, t string, n string, delta *int
 			if updateRes.RowsAffected() == 0 {
 				return errors.New("metric not added")
 			}
-			transaction.Commit(ctx)
-		} else if t == metrics.MetricTypeGauge {
+		} else if mtype == metrics.MetricTypeGauge {
 			update := getUpdateGaugeQuery()
 			updateRes, err := dbpool.Exec(ctx, update, *value, metricID)
 			if err != nil {
@@ -140,7 +179,6 @@ func (s *Settings) UpdateNew(ctx context.Context, t string, n string, delta *int
 			if updateRes.RowsAffected() == 0 {
 				return errors.New("metric not added")
 			}
-			transaction.Commit(ctx)
 		}
 	default:
 		return err
@@ -164,7 +202,7 @@ func getSearchMetricByNameQuery() string {
 func getUpdateCounterQuery() string {
 	return `
 	UPDATE public.counters
-	SET delta=$1
+	SET delta=delta + $1
 	WHERE metric_id=$2;
 	`
 }

@@ -71,7 +71,7 @@ func (cli *Client) PushMetrics() {
 func (cli *Client) PushMetricsJSON() {
 	mslice := DeepFieldsNew(cli.Metrics)
 
-	err := cli.updateMetricsJSON(mslice)
+	err := cli.updateBatchMetricsJSON(mslice)
 	if err != nil {
 		panic(err)
 	}
@@ -79,53 +79,99 @@ func (cli *Client) PushMetricsJSON() {
 	cli.Metrics.PollCount = 0
 }
 
-func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
+func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 	client := &http.Client{}
-	url := "http://" + cli.Address + "/update/"
+	url := "http://" + cli.Address + "/updates/"
 
-	for _, m := range allMetrics {
-		bodyBuffer := new(bytes.Buffer)
-		gzb := gzip.NewWriter(bodyBuffer)
-		json.NewEncoder(gzb).Encode(m)
-		err := gzb.Close()
-		if err != nil {
-			panic(err)
-		}
-
-		request, err := http.NewRequest(http.MethodPost, url, bodyBuffer)
-		if err != nil {
-			panic(err)
-		}
-		Sugar.Infoln("-----------NEW REQUEST---------------")
-		Sugar.Infoln("client-request: ", bodyBuffer.String())
-
-		request.Header.Set("Connection", "Keep-Alive")
-		request.Header.Set("Content-Encoding", "gzip")
-		response, err := client.Do(request)
-		if err != nil {
-			Sugar.Infoln("Error response: ", err.Error())
-			continue
-		}
-		Sugar.Infoln("Request done")
-
-		dataResponse, err := io.ReadAll(response.Body)
-		if err != nil {
-			panic(err)
-		}
-		Sugar.Infoln("Response body was read")
-
-		Sugar.Infoln("client-response: ", string(dataResponse))
-		Sugar.Infoln(
-			"uri", request.RequestURI,
-			"method", request.Method,
-			"status", response.Status, // получаем код статуса ответа
-		)
-
-		defer response.Body.Close()
+	bodyBuffer := new(bytes.Buffer)
+	gzb := gzip.NewWriter(bodyBuffer)
+	json.NewEncoder(gzb).Encode(allMetrics)
+	err := gzb.Close()
+	if err != nil {
+		panic(err)
 	}
+
+	request, err := http.NewRequest(http.MethodPost, url, bodyBuffer)
+	if err != nil {
+		panic(err)
+	}
+	Sugar.Infoln("-----------NEW REQUEST---------------")
+	Sugar.Infoln("client-request: ", bodyBuffer.String())
+
+	request.Header.Set("Connection", "Keep-Alive")
+	request.Header.Set("Content-Encoding", "gzip")
+	response, err := client.Do(request)
+	if err != nil {
+		Sugar.Infoln("Error response: ", err.Error())
+		return nil
+	}
+	Sugar.Infoln("Request done")
+
+	dataResponse, err := io.ReadAll(response.Body)
+	if err != nil {
+		panic(err)
+	}
+	Sugar.Infoln("Response body was read")
+
+	Sugar.Infoln("client-response: ", string(dataResponse))
+	Sugar.Infoln(
+		"uri", request.RequestURI,
+		"method", request.Method,
+		"status", response.Status, // получаем код статуса ответа
+	)
+
+	defer response.Body.Close()
 
 	return nil
 }
+
+// func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
+// 	client := &http.Client{}
+// 	url := "http://" + cli.Address + "/update/"
+
+// 	for _, m := range allMetrics {
+// 		bodyBuffer := new(bytes.Buffer)
+// 		gzb := gzip.NewWriter(bodyBuffer)
+// 		json.NewEncoder(gzb).Encode(m)
+// 		err := gzb.Close()
+// 		if err != nil {
+// 			panic(err)
+// 		}
+
+// 		request, err := http.NewRequest(http.MethodPost, url, bodyBuffer)
+// 		if err != nil {
+// 			panic(err)
+// 		}
+// 		Sugar.Infoln("-----------NEW REQUEST---------------")
+// 		Sugar.Infoln("client-request: ", bodyBuffer.String())
+
+// 		request.Header.Set("Connection", "Keep-Alive")
+// 		request.Header.Set("Content-Encoding", "gzip")
+// 		response, err := client.Do(request)
+// 		if err != nil {
+// 			Sugar.Infoln("Error response: ", err.Error())
+// 			continue
+// 		}
+// 		Sugar.Infoln("Request done")
+
+// 		dataResponse, err := io.ReadAll(response.Body)
+// 		if err != nil {
+// 			panic(err)
+// 		}
+// 		Sugar.Infoln("Response body was read")
+
+// 		Sugar.Infoln("client-response: ", string(dataResponse))
+// 		Sugar.Infoln(
+// 			"uri", request.RequestURI,
+// 			"method", request.Method,
+// 			"status", response.Status, // получаем код статуса ответа
+// 		)
+
+// 		defer response.Body.Close()
+// 	}
+
+// 	return nil
+// }
 
 func (cli *Client) updateMetric(metric Metric) error {
 	client := &http.Client{}
