@@ -210,8 +210,8 @@ func (srv *Server) UpdateBatchJSONHandle(w http.ResponseWriter, r *http.Request)
 
 	Sugar.Infoln("body-response: ", body)
 
-	// io.WriteString(w, body)
-	w.Write([]byte("{}"))
+	io.WriteString(w, body)
+	// w.Write([]byte("{}"))
 	w.WriteHeader(http.StatusOK)
 }
 
