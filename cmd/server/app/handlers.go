@@ -201,11 +201,7 @@ func (srv *Server) UpdateBatchJSONHandle(w http.ResponseWriter, r *http.Request)
 
 	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
 	bodyBuffer := new(bytes.Buffer)
-	if len(updatedMetrics) == 1 {
-		json.NewEncoder(bodyBuffer).Encode(updatedMetrics[0])
-	} else {
-		json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
-	}
+	json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
 	body := bodyBuffer.String()
 
 	Sugar.Infoln("body-response: ", body)

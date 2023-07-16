@@ -2,10 +2,15 @@ package app
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"
+	"github.com/kvvPro/metric-collector/internal/retry"
 	"github.com/kvvPro/metric-collector/internal/storage"
+
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	mem "github.com/kvvPro/metric-collector/internal/storage/memstorage"
 	db "github.com/kvvPro/metric-collector/internal/storage/postgres"
@@ -89,7 +94,20 @@ func (srv *Server) AddMetricNew(m metrics.Metric) error {
 func (srv *Server) AddMetricsBatch(m []metrics.Metric) error {
 	err := srv.storage.UpdateBatch(context.Background(), m)
 	if err != nil {
-		panic(err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
+			err = retry.Do(func() error {
+				return srv.storage.UpdateBatch(context.Background(), m)
+			},
+				retry.Attempts(3),
+				retry.PauseBeforeFirstAttempt(true),
+			)
+		}
+
+		if err != nil {
+			Sugar.Errorln(err)
+			return err
+		}
 	}
 	if srv.StoreInterval == 0 {
 		err = srv.SaveToFile()

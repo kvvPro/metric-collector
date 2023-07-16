@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"
+	"github.com/kvvPro/metric-collector/internal/retry"
 
 	"go.uber.org/zap"
 )
@@ -73,7 +74,17 @@ func (cli *Client) PushMetricsJSON() {
 
 	err := cli.updateBatchMetricsJSON(mslice)
 	if err != nil {
-		panic(err)
+		err = retry.Do(
+			func() error {
+				return cli.updateBatchMetricsJSON(mslice)
+			},
+			retry.Attempts(3),
+			retry.PauseBeforeFirstAttempt(true),
+		)
+		if err != nil {
+			Sugar.Fatalw(err.Error())
+			panic(err)
+		}
 	}
 	// обнуляем PollCount
 	cli.Metrics.PollCount = 0
@@ -103,7 +114,7 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 	response, err := client.Do(request)
 	if err != nil {
 		Sugar.Infoln("Error response: ", err.Error())
-		return nil
+		return err
 	}
 	Sugar.Infoln("Request done")
 
