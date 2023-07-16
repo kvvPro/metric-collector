@@ -44,7 +44,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS metric_name_ind
 CREATE TABLE IF NOT EXISTS public.counters
 (
     metric_id integer NOT NULL,
-    delta integer NOT NULL,
+    delta bigint NOT NULL,
     CONSTRAINT counters_metrics_id_fk FOREIGN KEY (metric_id)
         REFERENCES public.metrics (id) MATCH SIMPLE
         ON UPDATE NO ACTION
