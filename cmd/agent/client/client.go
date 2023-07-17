@@ -84,12 +84,14 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 	json.NewEncoder(gzb).Encode(allMetrics)
 	err := gzb.Close()
 	if err != nil {
-		panic(err)
+		Sugar.Infoln("Error encode request body: ", err.Error())
+		return err
 	}
 
 	request, err := http.NewRequest(http.MethodPost, url, bodyBuffer)
 	if err != nil {
-		panic(err)
+		Sugar.Infoln("Error request: ", err.Error())
+		return err
 	}
 	Sugar.Infoln("-----------NEW REQUEST---------------")
 	Sugar.Infoln("client-request: ", bodyBuffer.String())
@@ -105,7 +107,8 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 
 	dataResponse, err := io.ReadAll(response.Body)
 	if err != nil {
-		panic(err)
+		Sugar.Infoln("Error reading response body: ", err.Error())
+		return err
 	}
 	Sugar.Infoln("Response body was read")
 
@@ -127,7 +130,6 @@ func (cli *Client) Run() {
 	for {
 		if timefromReport >= cli.reportInterval {
 			timefromReport = 0
-			// cli.PushMetrics()
 			cli.PushMetricsJSON()
 		}
 
