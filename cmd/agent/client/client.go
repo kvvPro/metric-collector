@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
@@ -18,11 +17,6 @@ import (
 )
 
 var Sugar zap.SugaredLogger
-
-type Agent interface {
-	ReadMetrics()
-	PushMetrics()
-}
 
 type Metric interface {
 	GetName() string
@@ -61,14 +55,6 @@ func (cli *Client) ReadMetrics() {
 	cli.Metrics.RandomValue = 0.1 + rand.Float64()*(1000-0.1)
 }
 
-func (cli *Client) PushMetrics() {
-	mslice := DeepFields(cli.Metrics)
-
-	for _, m := range mslice {
-		cli.updateMetric(m)
-	}
-}
-
 func (cli *Client) PushMetricsJSON() {
 	mslice := DeepFieldsNew(cli.Metrics)
 
@@ -82,8 +68,7 @@ func (cli *Client) PushMetricsJSON() {
 			retry.PauseBeforeFirstAttempt(true),
 		)
 		if err != nil {
-			Sugar.Fatalw(err.Error())
-			panic(err)
+			Sugar.Infoln(err.Error())
 		}
 	}
 	// обнуляем PollCount
@@ -133,82 +118,6 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 
 	defer response.Body.Close()
 
-	return nil
-}
-
-// func (cli *Client) updateMetricsJSON(allMetrics []metrics.Metric) error {
-// 	client := &http.Client{}
-// 	url := "http://" + cli.Address + "/update/"
-
-// 	for _, m := range allMetrics {
-// 		bodyBuffer := new(bytes.Buffer)
-// 		gzb := gzip.NewWriter(bodyBuffer)
-// 		json.NewEncoder(gzb).Encode(m)
-// 		err := gzb.Close()
-// 		if err != nil {
-// 			panic(err)
-// 		}
-
-// 		request, err := http.NewRequest(http.MethodPost, url, bodyBuffer)
-// 		if err != nil {
-// 			panic(err)
-// 		}
-// 		Sugar.Infoln("-----------NEW REQUEST---------------")
-// 		Sugar.Infoln("client-request: ", bodyBuffer.String())
-
-// 		request.Header.Set("Connection", "Keep-Alive")
-// 		request.Header.Set("Content-Encoding", "gzip")
-// 		response, err := client.Do(request)
-// 		if err != nil {
-// 			Sugar.Infoln("Error response: ", err.Error())
-// 			continue
-// 		}
-// 		Sugar.Infoln("Request done")
-
-// 		dataResponse, err := io.ReadAll(response.Body)
-// 		if err != nil {
-// 			panic(err)
-// 		}
-// 		Sugar.Infoln("Response body was read")
-
-// 		Sugar.Infoln("client-response: ", string(dataResponse))
-// 		Sugar.Infoln(
-// 			"uri", request.RequestURI,
-// 			"method", request.Method,
-// 			"status", response.Status, // получаем код статуса ответа
-// 		)
-
-// 		defer response.Body.Close()
-// 	}
-
-// 	return nil
-// }
-
-func (cli *Client) updateMetric(metric Metric) error {
-	client := &http.Client{}
-	// metric := m.(Metric)
-	metricType := metric.GetTypeForQuery()
-	metricName := metric.GetName()
-	metricValue := metric.GetValue()
-	url := "http://" + cli.Address + "/update/" +
-		metricType + "/" + metricName + "/" + fmt.Sprintf("%v", metricValue)
-
-	var body []byte
-	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
-	if err != nil {
-		panic(err)
-	}
-
-	request.Header.Set("Content-Encoding", "gzip")
-	response, err := client.Do(request)
-	if err != nil {
-		panic(err)
-	}
-	_, serr := io.Copy(io.Discard, response.Body)
-	response.Body.Close()
-	if serr != nil {
-		panic(serr)
-	}
 	return nil
 }
 

@@ -12,8 +12,8 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	mem "github.com/kvvPro/metric-collector/internal/storage/memstorage"
-	db "github.com/kvvPro/metric-collector/internal/storage/postgres"
+	"github.com/kvvPro/metric-collector/internal/storage/memstorage"
+	"github.com/kvvPro/metric-collector/internal/storage/postgres"
 )
 
 type Server struct {
@@ -42,15 +42,19 @@ func NewServer(address string,
 
 	if dbconn != "" {
 		t = DatabaseStorageType
-		newdb, err := db.NewPSQLStr(context.Background(), dbconn)
+		newdb, err := postgres.NewPSQLStr(context.Background(), dbconn)
 		if err != nil {
 			return nil, err
 		}
 		st = newdb
 	} else {
 		t = MemStorageType
-		newmem := mem.NewMemStorage()
+		newmem := memstorage.NewMemStorage()
 		st = &newmem
+	}
+
+	if st == nil {
+		return nil, errors.New("cannot create storage for server")
 	}
 
 	return &Server{

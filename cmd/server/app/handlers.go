@@ -132,9 +132,11 @@ func (srv *Server) PingHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+
 	body := "OK!"
 	io.WriteString(w, body)
-	w.WriteHeader(http.StatusOK)
 }
 
 func (srv *Server) UpdateHandle(w http.ResponseWriter, r *http.Request) {
@@ -196,15 +198,6 @@ func (srv *Server) UpdateBatchJSONHandle(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		panic(err)
 	}
-
-	// w.Header().Set("Content-Type", "application/json")
-
-	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
-	bodyBuffer := new(bytes.Buffer)
-	json.NewEncoder(bodyBuffer).Encode(updatedMetrics)
-	body := bodyBuffer.String()
-
-	Sugar.Infoln("body-response: ", body)
 
 	testbody := "OK!"
 	io.WriteString(w, testbody)
