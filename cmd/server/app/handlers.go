@@ -150,7 +150,8 @@ func (srv *Server) UpdateHandle(w http.ResponseWriter, r *http.Request) {
 	metricValue := params[4]
 	err := srv.AddMetric(metricType, metricName, metricValue)
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	body := "OK!"
@@ -167,13 +168,19 @@ func (srv *Server) UpdateJSONHandle(w http.ResponseWriter, r *http.Request) {
 	for _, m := range requestedMetrics {
 		err := srv.AddMetricNew(m)
 		if err != nil {
-			panic(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 
-	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
+	updatedMetrics, err := srv.GetRequestedValues(requestedMetrics)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	bodyBuffer := new(bytes.Buffer)
 	if len(updatedMetrics) == 1 {
 		json.NewEncoder(bodyBuffer).Encode(updatedMetrics[0])
@@ -196,7 +203,8 @@ func (srv *Server) UpdateBatchJSONHandle(w http.ResponseWriter, r *http.Request)
 
 	err := srv.AddMetricsBatch(requestedMetrics)
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	testbody := "OK!"
@@ -210,16 +218,17 @@ func (srv *Server) GetValueJSONHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// // check if ID+Type of requested metric not found in our storage
-	// for _, el := range requestedMetrics {
-	// 	if _, err := srv.GetMetricValue(el.MType, el.ID); err != nil {
-	// 		http.Error(w, err.Error(), http.StatusBadRequest)
-	// 		return
-	// 	}
-	// }
+	updatedMetrics, err := srv.GetRequestedValues(requestedMetrics)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
-	allmetrics := srv.GetAllMetricsNew()
+	allmetrics, err := srv.GetAllMetricsNew()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	// error if one or more requested metrics weren't found in our store
 	if len(requestedMetrics) != len(updatedMetrics) {
@@ -277,7 +286,11 @@ func (srv *Server) AllMetricsHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metrics := srv.GetAllMetricsNew()
+	metrics, err := srv.GetAllMetricsNew()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	body := `<html>
 				<head>
 				<title></title>

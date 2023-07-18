@@ -75,7 +75,7 @@ func (srv *Server) Ping(ctx context.Context) error {
 func (srv *Server) AddMetric(metricType string, metricName string, metricValue string) error {
 	err := srv.storage.Update(metricType, metricName, metricValue)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return nil
 }
@@ -83,7 +83,20 @@ func (srv *Server) AddMetric(metricType string, metricName string, metricValue s
 func (srv *Server) AddMetricNew(m metrics.Metric) error {
 	err := srv.storage.UpdateNew(context.Background(), m.MType, m.ID, m.Delta, m.Value)
 	if err != nil {
-		panic(err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
+			err = retry.Do(func() error {
+				return srv.storage.UpdateNew(context.Background(), m.MType, m.ID, m.Delta, m.Value)
+			},
+				retry.Attempts(3),
+				retry.PauseBeforeFirstAttempt(true),
+			)
+		}
+
+		if err != nil {
+			Sugar.Errorln(err)
+			return err
+		}
 	}
 	if srv.StoreInterval == 0 {
 		err = srv.SaveToFile()
@@ -128,8 +141,11 @@ func (srv *Server) GetMetricValue(metricType string, metricName string) (any, er
 	return val, err
 }
 
-func (srv *Server) GetRequestedValues(m []metrics.Metric) []metrics.Metric {
-	slice := srv.GetAllMetricsNew()
+func (srv *Server) GetRequestedValues(m []metrics.Metric) ([]metrics.Metric, error) {
+	slice, err := srv.GetAllMetricsNew()
+	if err != nil {
+		return nil, err
+	}
 	hash := make(map[string]*metrics.Metric, 0)
 
 	for _, el := range slice {
@@ -154,19 +170,34 @@ func (srv *Server) GetRequestedValues(m []metrics.Metric) []metrics.Metric {
 		}
 	}
 
-	return result
+	return result, nil
 }
 
 func (srv *Server) GetAllMetrics() []storage.Metric {
 	val := srv.storage.GetAllMetrics()
 	return val
 }
-func (srv *Server) GetAllMetricsNew() []*metrics.Metric {
+func (srv *Server) GetAllMetricsNew() ([]*metrics.Metric, error) {
+	var val []*metrics.Metric
 	val, err := srv.storage.GetAllMetricsNew(context.Background())
 	if err != nil {
-		panic(err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
+			err = retry.Do(func() error {
+				val, err = srv.storage.GetAllMetricsNew(context.Background())
+				return err
+			},
+				retry.Attempts(3),
+				retry.PauseBeforeFirstAttempt(true),
+			)
+		}
+
+		if err != nil {
+			Sugar.Errorln(err)
+			return nil, err
+		}
 	}
-	return val
+	return val, nil
 }
 
 func (srv *Server) AsyncSaving() {
@@ -179,7 +210,6 @@ func (srv *Server) AsyncSaving() {
 			err := srv.SaveToFile()
 			if err != nil {
 				Sugar.Infoln("Save to file failed: ", err.Error())
-				panic(err)
 			}
 		}
 	}
@@ -190,7 +220,6 @@ func (srv *Server) RestoreValues() {
 		m, err := srv.ReadFromFile()
 		if err != nil {
 			Sugar.Infoln("Read values failed: ", err.Error())
-			// panic(err)
 		}
 
 		for _, el := range m {
