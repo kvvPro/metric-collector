@@ -99,7 +99,7 @@ func TestNewServer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewServer(tt.args.address, tt.args.storeInterval, tt.args.filePath, tt.args.restore, tt.args.dbconn)
+			got, err := NewServer(tt.args.address, tt.args.storeInterval, tt.args.filePath, tt.args.restore, tt.args.dbconn, "")
 			if err != nil || !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewServer() = %v, want %v", got, tt.want)
 			}

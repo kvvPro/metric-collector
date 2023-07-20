@@ -37,7 +37,8 @@ func main() {
 		srvFlags.StoreInterval,
 		srvFlags.FileStoragePath,
 		srvFlags.Restore,
-		srvFlags.DBConnection)
+		srvFlags.DBConnection,
+		srvFlags.HashKey)
 
 	if err != nil {
 		app.Sugar.Fatalw(err.Error(), "event", "create server")

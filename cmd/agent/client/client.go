@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/kvvPro/metric-collector/internal/hash"
 	"github.com/kvvPro/metric-collector/internal/metrics"
 	"github.com/kvvPro/metric-collector/internal/retry"
 
@@ -37,15 +38,19 @@ type Client struct {
 	reportInterval int
 	Address        string
 	contentType    string
+	needToHash     bool
+	hashKey        string
 }
 
-func NewClient(pollInterval int, reportInterval int, address string, contentType string) (*Client, error) {
+func NewClient(pollInterval int, reportInterval int, address string, contentType string, hashKey string) (*Client, error) {
 	return &Client{
 		Metrics:        Metrics{},
 		pollInterval:   pollInterval,
 		reportInterval: reportInterval,
 		Address:        address,
 		contentType:    contentType,
+		hashKey:        hashKey,
+		needToHash:     hashKey != "",
 	}, nil
 }
 
@@ -98,6 +103,9 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 
 	request.Header.Set("Connection", "Keep-Alive")
 	request.Header.Set("Content-Encoding", "gzip")
+	if cli.needToHash {
+		request.Header.Set("HashSHA256", hash.GetHashSHA256(bodyBuffer.String()))
+	}
 	response, err := client.Do(request)
 	if err != nil {
 		Sugar.Infoln("Error response: ", err.Error())

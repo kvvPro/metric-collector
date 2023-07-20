@@ -12,6 +12,7 @@ type ClientFlags struct {
 	Address        string `env:"ADDRESS"`
 	ReportInterval int    `env:"REPORT_INTERVAL"`
 	PollInterval   int    `env:"POLL_INTERVAL"`
+	HashKey        string `env:"KEY"`
 }
 
 func Initialize() ClientFlags {
@@ -24,6 +25,7 @@ func Initialize() ClientFlags {
 	fmt.Printf("ADDRESS=%v", agentFlags.Address)
 	fmt.Printf("\nREPORT_INTERVAL=%v", agentFlags.ReportInterval)
 	fmt.Printf("\nPOLL_INTERVAL=%v", agentFlags.PollInterval)
+	fmt.Printf("\nKEY=%v", agentFlags.HashKey)
 	// try to get vars from Flags
 	if _, isSet := os.LookupEnv("ADDRESS"); !isSet {
 		pflag.StringVarP(&agentFlags.Address, "addr", "a", "localhost:8080", "Net address host:port")
@@ -36,6 +38,10 @@ func Initialize() ClientFlags {
 		pflag.IntVarP(&agentFlags.PollInterval, "pollInterval", "p", 2,
 			"Wait interval in seconds before reading metrics")
 	}
+	if _, isSet := os.LookupEnv("KEY"); !isSet {
+		pflag.StringVarP(&agentFlags.HashKey, "key", "k", "",
+			"Hash key to calculate hash sum")
+	}
 
 	pflag.Parse()
 
@@ -43,6 +49,7 @@ func Initialize() ClientFlags {
 	fmt.Printf("ADDRESS=%v", agentFlags.Address)
 	fmt.Printf("\nREPORT_INTERVAL=%v", agentFlags.ReportInterval)
 	fmt.Printf("\nPOLL_INTERVAL=%v", agentFlags.PollInterval)
+	fmt.Printf("\nKEY=%v", agentFlags.HashKey)
 	fmt.Println()
 
 	return *agentFlags

@@ -24,6 +24,8 @@ type Server struct {
 	Restore         bool
 	DBConnection    string
 	StorageType     string
+	HashKey         string
+	CheckHash       bool
 }
 
 const (
@@ -35,7 +37,8 @@ func NewServer(address string,
 	storeInterval int,
 	filePath string,
 	restore bool,
-	dbconn string) (*Server, error) {
+	dbconn string,
+	hashKey string) (*Server, error) {
 
 	var t string
 	var st storage.Storage
@@ -65,6 +68,8 @@ func NewServer(address string,
 		Restore:         restore,
 		DBConnection:    dbconn,
 		StorageType:     t,
+		HashKey:         hashKey,
+		CheckHash:       hashKey != "",
 	}, nil
 }
 

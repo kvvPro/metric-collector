@@ -13,6 +13,7 @@ type ServerFlags struct {
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	Restore         bool   `env:"RESTORE"`
 	DBConnection    string `env:"DATABASE_DSN"`
+	HashKey         string `env:"KEY"`
 }
 
 func Initialize() ServerFlags {
@@ -37,6 +38,8 @@ func Initialize() ServerFlags {
 	pflag.BoolVarP(&srvFlags.Restore, "restore", "r", true,
 		"True if restore values from file stored in FILE_STORAGE_PATH")
 	// }
+	pflag.StringVarP(&srvFlags.HashKey, "hashKey", "k", "",
+		"Hash key to calculate hash sum")
 
 	pflag.Parse()
 
@@ -46,6 +49,7 @@ func Initialize() ServerFlags {
 	fmt.Printf("FILE_STORAGE_PATH=%v", srvFlags.FileStoragePath)
 	fmt.Printf("RESTORE=%v", srvFlags.Restore)
 	fmt.Printf("DATABASE_DSN=%v", srvFlags.DBConnection)
+	fmt.Printf("KEY=%v", srvFlags.HashKey)
 
 	// try to get vars from env
 	if err := env.Parse(srvFlags); err != nil {
@@ -57,6 +61,7 @@ func Initialize() ServerFlags {
 	fmt.Printf("FILE_STORAGE_PATH=%v", srvFlags.FileStoragePath)
 	fmt.Printf("RESTORE=%v", srvFlags.Restore)
 	fmt.Printf("DATABASE_DSN=%v", srvFlags.DBConnection)
+	fmt.Printf("KEY=%v", srvFlags.HashKey)
 
 	return *srvFlags
 }

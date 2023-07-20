@@ -20,7 +20,7 @@ func main() {
 
 	agentFlags := config.Initialize()
 	agent, err := client.NewClient(agentFlags.PollInterval, agentFlags.ReportInterval,
-		agentFlags.Address, "text/plain")
+		agentFlags.Address, "text/plain", agentFlags.HashKey)
 	if err != nil {
 		panic(err)
 	}

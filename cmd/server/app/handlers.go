@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kvvPro/metric-collector/internal/hash"
 	mc "github.com/kvvPro/metric-collector/internal/metrics"
 	"go.uber.org/zap"
 )
@@ -111,6 +112,26 @@ func GzipMiddleware(h http.Handler) http.Handler {
 		h.ServeHTTP(ow, r)
 	}
 	return http.HandlerFunc(compressFunc)
+}
+
+func CheckHashMiddleware(h http.Handler) http.Handler {
+	checkHashFunc := func(w http.ResponseWriter, r *http.Request) {
+		requestHash := r.Header.Get("HashSHA256")
+		if requestHash != "" {
+			// проверяем хэш
+			originalHash := hash.GetHashSHA256(requestHash)
+			if originalHash != requestHash {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			// вычисляем хэш тела ответа
+			w.Header().Set("HashSHA256", "gzip")
+		}
+
+		// передаём управление хендлеру
+		h.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(checkHashFunc)
 }
 
 func (srv *Server) PingHandle(w http.ResponseWriter, r *http.Request) {
