@@ -94,9 +94,9 @@ func (srv *Server) AddMetricNew(ctx context.Context, m metrics.Metric) error {
 		retry.RetryIf(func(errAttempt error) bool {
 			var pgErr *pgconn.PgError
 			if errors.As(errAttempt, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
-				return false
+				return true
 			}
-			return true
+			return false
 		}),
 		retry.Attempts(3),
 		retry.InitDelay(1000*time.Millisecond),
@@ -128,9 +128,9 @@ func (srv *Server) AddMetricsBatch(ctx context.Context, m []metrics.Metric) erro
 		retry.RetryIf(func(errAttempt error) bool {
 			var pgErr *pgconn.PgError
 			if errors.As(errAttempt, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
-				return false
+				return true
 			}
-			return true
+			return false
 		}),
 		retry.Attempts(3),
 		retry.InitDelay(1000*time.Millisecond),
@@ -205,9 +205,9 @@ func (srv *Server) GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, err
 		retry.RetryIf(func(errAttempt error) bool {
 			var pgErr *pgconn.PgError
 			if errors.As(errAttempt, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
-				return false
+				return true
 			}
-			return true
+			return false
 		}),
 		retry.Attempts(3),
 		retry.InitDelay(1000*time.Millisecond),
