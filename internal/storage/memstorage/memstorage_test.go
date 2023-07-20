@@ -1,6 +1,7 @@
 package memstorage
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -47,7 +48,7 @@ func TestMemStorage_Update(t *testing.T) {
 				Gauges:   tt.fields.Gauges,
 				Counters: tt.fields.Counters,
 			}
-			if err := s.Update(tt.args.t, tt.args.n, tt.args.v); (err != nil) != tt.wantErr {
+			if err := s.Update(context.Background(), tt.args.t, tt.args.n, tt.args.v); (err != nil) != tt.wantErr {
 				t.Errorf("MemStorage.Update() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -72,7 +73,7 @@ func TestMemStorage_GetAllMetrics(t *testing.T) {
 				Gauges:   tt.fields.Gauges,
 				Counters: tt.fields.Counters,
 			}
-			if got := s.GetAllMetrics(); !reflect.DeepEqual(got, tt.want) {
+			if got, err := s.GetAllMetrics(context.Background()); !reflect.DeepEqual(got, tt.want) || err != nil {
 				t.Errorf("MemStorage.GetAllMetrics() = %v, want %v", got, tt.want)
 			}
 		})
@@ -103,7 +104,7 @@ func TestMemStorage_GetValue(t *testing.T) {
 				Gauges:   tt.fields.Gauges,
 				Counters: tt.fields.Counters,
 			}
-			got, err := s.GetValue(tt.args.t, tt.args.n)
+			got, err := s.GetValue(context.Background(), tt.args.t, tt.args.n)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("MemStorage.GetValue() error = %v, wantErr %v", err, tt.wantErr)
 				return

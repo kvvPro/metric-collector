@@ -72,8 +72,8 @@ func (srv *Server) Ping(ctx context.Context) error {
 	return srv.storage.Ping(ctx)
 }
 
-func (srv *Server) AddMetric(metricType string, metricName string, metricValue string) error {
-	err := srv.storage.Update(metricType, metricName, metricValue)
+func (srv *Server) AddMetric(ctx context.Context, metricType string, metricName string, metricValue string) error {
+	err := srv.storage.Update(ctx, metricType, metricName, metricValue)
 	if err != nil {
 		return err
 	}
@@ -148,8 +148,8 @@ func (srv *Server) AddMetricsBatch(ctx context.Context, m []metrics.Metric) erro
 	return nil
 }
 
-func (srv *Server) GetMetricValue(metricType string, metricName string) (any, error) {
-	val, err := srv.storage.GetValue(metricType, metricName)
+func (srv *Server) GetMetricValue(ctx context.Context, metricType string, metricName string) (any, error) {
+	val, err := srv.storage.GetValue(ctx, metricType, metricName)
 	return val, err
 }
 
@@ -185,10 +185,11 @@ func (srv *Server) GetRequestedValues(ctx context.Context, m []metrics.Metric) (
 	return result, nil
 }
 
-func (srv *Server) GetAllMetrics() []storage.Metric {
-	val := srv.storage.GetAllMetrics()
-	return val
+func (srv *Server) GetAllMetrics(ctx context.Context) ([]storage.Metric, error) {
+	val, err := srv.storage.GetAllMetrics(ctx)
+	return val, err
 }
+
 func (srv *Server) GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, error) {
 	var val []*metrics.Metric
 	var err error

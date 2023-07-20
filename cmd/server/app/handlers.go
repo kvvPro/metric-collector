@@ -148,7 +148,7 @@ func (srv *Server) UpdateHandle(w http.ResponseWriter, r *http.Request) {
 	metricType := params[2]
 	metricName := params[3]
 	metricValue := params[4]
-	err := srv.AddMetric(metricType, metricName, metricValue)
+	err := srv.AddMetric(r.Context(), metricType, metricName, metricValue)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -264,7 +264,7 @@ func (srv *Server) GetValueHandle(w http.ResponseWriter, r *http.Request) {
 	metricType := params[2]
 	metricName := params[3]
 
-	val, err := srv.GetMetricValue(metricType, metricName)
+	val, err := srv.GetMetricValue(r.Context(), metricType, metricName)
 	if val == nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
