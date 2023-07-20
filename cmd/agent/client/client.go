@@ -105,7 +105,7 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 	request.Header.Set("Connection", "Keep-Alive")
 	request.Header.Set("Content-Encoding", "gzip")
 	if cli.needToHash {
-		request.Header.Set("HashSHA256", hash.GetHashSHA256(bodyBuffer.String()))
+		request.Header.Set("HashSHA256", hash.GetHashSHA256(bodyBuffer.String(), cli.hashKey))
 	}
 	response, err := client.Do(request)
 	if err != nil {

@@ -114,12 +114,12 @@ func GzipMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(compressFunc)
 }
 
-func CheckHashMiddleware(h http.Handler) http.Handler {
+func (srv *Server) CheckHashMiddleware(h http.Handler) http.Handler {
 	checkHashFunc := func(w http.ResponseWriter, r *http.Request) {
 		requestHash := r.Header.Get("HashSHA256")
 		if requestHash != "" {
 			// проверяем хэш
-			originalHash := hash.GetHashSHA256(requestHash)
+			originalHash := hash.GetHashSHA256(requestHash, srv.HashKey)
 			if originalHash != requestHash {
 				w.WriteHeader(http.StatusBadRequest)
 				return
