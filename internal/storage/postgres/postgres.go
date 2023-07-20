@@ -12,11 +12,11 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-type Settings struct {
+type PostgresStorage struct {
 	ConnStr string
 }
 
-func NewPSQLStr(ctx context.Context, connection string) (*Settings, error) {
+func NewPSQLStr(ctx context.Context, connection string) (*PostgresStorage, error) {
 	// init
 	init := getInitQuery()
 	dbpool, err := pgxpool.New(ctx, connection)
@@ -31,12 +31,12 @@ func NewPSQLStr(ctx context.Context, connection string) (*Settings, error) {
 		return nil, err
 	}
 
-	return &Settings{
+	return &PostgresStorage{
 		ConnStr: connection,
 	}, nil
 }
 
-func (s *Settings) Ping(ctx context.Context) error {
+func (s *PostgresStorage) Ping(ctx context.Context) error {
 	dbpool, err := pgxpool.New(ctx, s.ConnStr)
 	if err != nil {
 		return err
@@ -53,11 +53,11 @@ func (s *Settings) Ping(ctx context.Context) error {
 }
 
 // depricated
-func (s *Settings) Update(ctx context.Context, t string, n string, v string) error {
+func (s *PostgresStorage) Update(ctx context.Context, t string, n string, v string) error {
 	return errors.New("func is depricated")
 }
 
-func (s *Settings) UpdateNew(ctx context.Context, mtype string, mname string, delta *int64, value *float64) error {
+func (s *PostgresStorage) UpdateNew(ctx context.Context, mtype string, mname string, delta *int64, value *float64) error {
 
 	dbpool, err := pgxpool.New(ctx, s.ConnStr)
 	if err != nil {
@@ -82,7 +82,7 @@ func (s *Settings) UpdateNew(ctx context.Context, mtype string, mname string, de
 	return nil
 }
 
-func (s *Settings) UpdateBatch(ctx context.Context, m []metrics.Metric) error {
+func (s *PostgresStorage) UpdateBatch(ctx context.Context, m []metrics.Metric) error {
 	dbpool, err := pgxpool.New(ctx, s.ConnStr)
 	if err != nil {
 		return err
@@ -320,16 +320,16 @@ func getInitQuery() string {
 }
 
 // depricated
-func (s *Settings) GetValue(ctx context.Context, t string, n string) (any, error) {
+func (s *PostgresStorage) GetValue(ctx context.Context, t string, n string) (any, error) {
 	return nil, errors.New("func is depricated")
 }
 
 // depricated
-func (s *Settings) GetAllMetrics(ctx context.Context) ([]storage.Metric, error) {
+func (s *PostgresStorage) GetAllMetrics(ctx context.Context) ([]storage.Metric, error) {
 	return nil, errors.New("func is depricated")
 }
 
-func (s *Settings) GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, error) {
+func (s *PostgresStorage) GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, error) {
 	m := []*metrics.Metric{}
 
 	dbpool, err := pgxpool.New(ctx, s.ConnStr)
