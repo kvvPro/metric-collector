@@ -77,34 +77,40 @@ func (srv *Server) Ping(ctx context.Context) error {
 	return srv.storage.Ping(ctx)
 }
 
-func (srv *Server) AddMetric(metricType string, metricName string, metricValue string) error {
-	err := srv.storage.Update(metricType, metricName, metricValue)
+func (srv *Server) AddMetric(ctx context.Context, metricType string, metricName string, metricValue string) error {
+	err := srv.storage.Update(ctx, metricType, metricName, metricValue)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (srv *Server) AddMetricNew(m metrics.Metric) error {
-	err := srv.storage.UpdateNew(context.Background(), m.MType, m.ID, m.Delta, m.Value)
-	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
-			err = retry.Do(func() error {
-				return srv.storage.UpdateNew(context.Background(), m.MType, m.ID, m.Delta, m.Value)
-			},
-				retry.Attempts(3),
-				retry.PauseBeforeFirstAttempt(true),
-			)
-		}
+func (srv *Server) AddMetricNew(ctx context.Context, m metrics.Metric) error {
+	var err error
 
-		if err != nil {
-			Sugar.Errorln(err)
-			return err
-		}
+	err = retry.Do(func() error {
+		return srv.storage.UpdateNew(context.Background(), m.MType, m.ID, m.Delta, m.Value)
+	},
+		retry.RetryIf(func(errAttempt error) bool {
+			var pgErr *pgconn.PgError
+			if errors.As(errAttempt, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
+				return false
+			}
+			return true
+		}),
+		retry.Attempts(3),
+		retry.InitDelay(1000*time.Millisecond),
+		retry.Step(2000*time.Millisecond),
+		retry.Context(ctx),
+	)
+
+	if err != nil {
+		Sugar.Errorln(err)
+		return err
 	}
+
 	if srv.StoreInterval == 0 {
-		err = srv.SaveToFile()
+		err = srv.SaveToFile(ctx)
 		if err != nil {
 			Sugar.Infoln("Save to file failed: ", err.Error())
 		}
@@ -113,26 +119,32 @@ func (srv *Server) AddMetricNew(m metrics.Metric) error {
 	return nil
 }
 
-func (srv *Server) AddMetricsBatch(m []metrics.Metric) error {
-	err := srv.storage.UpdateBatch(context.Background(), m)
-	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
-			err = retry.Do(func() error {
-				return srv.storage.UpdateBatch(context.Background(), m)
-			},
-				retry.Attempts(3),
-				retry.PauseBeforeFirstAttempt(true),
-			)
-		}
+func (srv *Server) AddMetricsBatch(ctx context.Context, m []metrics.Metric) error {
 
-		if err != nil {
-			Sugar.Errorln(err)
-			return err
-		}
+	var err error
+	err = retry.Do(func() error {
+		return srv.storage.UpdateBatch(context.Background(), m)
+	},
+		retry.RetryIf(func(errAttempt error) bool {
+			var pgErr *pgconn.PgError
+			if errors.As(errAttempt, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
+				return false
+			}
+			return true
+		}),
+		retry.Attempts(3),
+		retry.InitDelay(1000*time.Millisecond),
+		retry.Step(2000*time.Millisecond),
+		retry.Context(ctx),
+	)
+
+	if err != nil {
+		Sugar.Errorln(err)
+		return err
 	}
+
 	if srv.StoreInterval == 0 {
-		err = srv.SaveToFile()
+		err = srv.SaveToFile(ctx)
 		if err != nil {
 			Sugar.Infoln("Save to file failed: ", err.Error())
 		}
@@ -141,13 +153,13 @@ func (srv *Server) AddMetricsBatch(m []metrics.Metric) error {
 	return nil
 }
 
-func (srv *Server) GetMetricValue(metricType string, metricName string) (any, error) {
-	val, err := srv.storage.GetValue(metricType, metricName)
+func (srv *Server) GetMetricValue(ctx context.Context, metricType string, metricName string) (any, error) {
+	val, err := srv.storage.GetValue(ctx, metricType, metricName)
 	return val, err
 }
 
-func (srv *Server) GetRequestedValues(m []metrics.Metric) ([]metrics.Metric, error) {
-	slice, err := srv.GetAllMetricsNew()
+func (srv *Server) GetRequestedValues(ctx context.Context, m []metrics.Metric) ([]metrics.Metric, error) {
+	slice, err := srv.GetAllMetricsNew(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -178,41 +190,47 @@ func (srv *Server) GetRequestedValues(m []metrics.Metric) ([]metrics.Metric, err
 	return result, nil
 }
 
-func (srv *Server) GetAllMetrics() []storage.Metric {
-	val := srv.storage.GetAllMetrics()
-	return val
+func (srv *Server) GetAllMetrics(ctx context.Context) ([]storage.Metric, error) {
+	val, err := srv.storage.GetAllMetrics(ctx)
+	return val, err
 }
-func (srv *Server) GetAllMetricsNew() ([]*metrics.Metric, error) {
-	var val []*metrics.Metric
-	val, err := srv.storage.GetAllMetricsNew(context.Background())
-	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
-			err = retry.Do(func() error {
-				val, err = srv.storage.GetAllMetricsNew(context.Background())
-				return err
-			},
-				retry.Attempts(3),
-				retry.PauseBeforeFirstAttempt(true),
-			)
-		}
 
-		if err != nil {
-			Sugar.Errorln(err)
-			return nil, err
-		}
+func (srv *Server) GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, error) {
+	var val []*metrics.Metric
+	var err error
+	err = retry.Do(func() error {
+		val, err = srv.storage.GetAllMetricsNew(context.Background())
+		return err
+	},
+		retry.RetryIf(func(errAttempt error) bool {
+			var pgErr *pgconn.PgError
+			if errors.As(errAttempt, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
+				return false
+			}
+			return true
+		}),
+		retry.Attempts(3),
+		retry.InitDelay(1000*time.Millisecond),
+		retry.Step(2000*time.Millisecond),
+		retry.Context(ctx),
+	)
+
+	if err != nil {
+		Sugar.Errorln(err)
+		return nil, err
 	}
+
 	return val, nil
 }
 
-func (srv *Server) AsyncSaving() {
+func (srv *Server) AsyncSaving(ctx context.Context) {
 	// run if only StoreInterval > 0, if StoreInterval = 0 => sync writing after each update
 	// and FileStoragePath != ""
 	if srv.StoreInterval > 0 && srv.FileStoragePath != "" {
 		for {
 			time.Sleep(time.Duration(srv.StoreInterval) * time.Second)
 
-			err := srv.SaveToFile()
+			err := srv.SaveToFile(ctx)
 			if err != nil {
 				Sugar.Infoln("Save to file failed: ", err.Error())
 			}
@@ -220,7 +238,7 @@ func (srv *Server) AsyncSaving() {
 	}
 }
 
-func (srv *Server) RestoreValues() {
+func (srv *Server) RestoreValues(ctx context.Context) {
 	if srv.Restore && srv.StorageType == "memory" {
 		m, err := srv.ReadFromFile()
 		if err != nil {
@@ -228,7 +246,7 @@ func (srv *Server) RestoreValues() {
 		}
 
 		for _, el := range m {
-			srv.AddMetricNew(el)
+			srv.AddMetricNew(ctx, el)
 		}
 	}
 }

@@ -25,7 +25,7 @@ func (s *MemStorage) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (s *MemStorage) Update(t string, n string, v string) error {
+func (s *MemStorage) Update(ctx context.Context, t string, n string, v string) error {
 	if t == metrics.MetricTypeGauge {
 		if fval, err := strconv.ParseFloat(v, 64); err == nil {
 			s.Gauges[n] = fval
@@ -85,7 +85,7 @@ func (s *MemStorage) UpdateBatch(ctx context.Context, m []metrics.Metric) error 
 	return nil
 }
 
-func (s *MemStorage) GetValue(t string, n string) (any, error) {
+func (s *MemStorage) GetValue(ctx context.Context, t string, n string) (any, error) {
 	var val any
 	var exists bool
 
@@ -103,7 +103,7 @@ func (s *MemStorage) GetValue(t string, n string) (any, error) {
 	return val, nil
 }
 
-func (s *MemStorage) GetAllMetrics() []storage.Metric {
+func (s *MemStorage) GetAllMetrics(ctx context.Context) ([]storage.Metric, error) {
 	m := []storage.Metric{}
 
 	for name, val := range s.Counters {
@@ -116,7 +116,7 @@ func (s *MemStorage) GetAllMetrics() []storage.Metric {
 		m = append(m, c)
 	}
 
-	return m
+	return m, nil
 }
 
 func (s *MemStorage) GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, error) {

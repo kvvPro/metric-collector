@@ -169,7 +169,7 @@ func (srv *Server) UpdateHandle(w http.ResponseWriter, r *http.Request) {
 	metricType := params[2]
 	metricName := params[3]
 	metricValue := params[4]
-	err := srv.AddMetric(metricType, metricName, metricValue)
+	err := srv.AddMetric(r.Context(), metricType, metricName, metricValue)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -187,7 +187,7 @@ func (srv *Server) UpdateJSONHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, m := range requestedMetrics {
-		err := srv.AddMetricNew(m)
+		err := srv.AddMetricNew(r.Context(), m)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -196,7 +196,7 @@ func (srv *Server) UpdateJSONHandle(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	updatedMetrics, err := srv.GetRequestedValues(requestedMetrics)
+	updatedMetrics, err := srv.GetRequestedValues(r.Context(), requestedMetrics)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -222,7 +222,7 @@ func (srv *Server) UpdateBatchJSONHandle(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err := srv.AddMetricsBatch(requestedMetrics)
+	err := srv.AddMetricsBatch(r.Context(), requestedMetrics)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -239,13 +239,13 @@ func (srv *Server) GetValueJSONHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedMetrics, err := srv.GetRequestedValues(requestedMetrics)
+	updatedMetrics, err := srv.GetRequestedValues(r.Context(), requestedMetrics)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	allmetrics, err := srv.GetAllMetricsNew()
+	allmetrics, err := srv.GetAllMetricsNew(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -285,7 +285,7 @@ func (srv *Server) GetValueHandle(w http.ResponseWriter, r *http.Request) {
 	metricType := params[2]
 	metricName := params[3]
 
-	val, err := srv.GetMetricValue(metricType, metricName)
+	val, err := srv.GetMetricValue(r.Context(), metricType, metricName)
 	if val == nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -307,7 +307,7 @@ func (srv *Server) AllMetricsHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metrics, err := srv.GetAllMetricsNew()
+	metrics, err := srv.GetAllMetricsNew(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

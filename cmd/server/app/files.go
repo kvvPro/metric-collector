@@ -2,15 +2,16 @@ package app
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"
 )
 
-func (srv *Server) SaveToFile() error {
+func (srv *Server) SaveToFile(ctx context.Context) error {
 	// сериализуем структуру в JSON формат
-	m, err := srv.GetAllMetricsNew()
+	m, err := srv.GetAllMetricsNew(ctx)
 	if err != nil {
 		return err
 	}

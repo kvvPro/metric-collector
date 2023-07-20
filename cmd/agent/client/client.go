@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"io"
 	"math/rand"
@@ -60,22 +61,22 @@ func (cli *Client) ReadMetrics() {
 	cli.Metrics.RandomValue = 0.1 + rand.Float64()*(1000-0.1)
 }
 
-func (cli *Client) PushMetricsJSON() {
+func (cli *Client) PushMetricsJSON(ctx context.Context) {
 	mslice := DeepFieldsNew(cli.Metrics)
 
-	err := cli.updateBatchMetricsJSON(mslice)
+	err := retry.Do(
+		func() error {
+			return cli.updateBatchMetricsJSON(mslice)
+		},
+		retry.Attempts(3),
+		retry.InitDelay(1000*time.Millisecond),
+		retry.Step(2000*time.Millisecond),
+		retry.Context(ctx),
+	)
 	if err != nil {
-		err = retry.Do(
-			func() error {
-				return cli.updateBatchMetricsJSON(mslice)
-			},
-			retry.Attempts(3),
-			retry.PauseBeforeFirstAttempt(true),
-		)
-		if err != nil {
-			Sugar.Infoln(err.Error())
-		}
+		Sugar.Infoln(err.Error())
 	}
+
 	// обнуляем PollCount
 	cli.Metrics.PollCount = 0
 }
@@ -132,13 +133,13 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 	return nil
 }
 
-func (cli *Client) Run() {
+func (cli *Client) Run(ctx context.Context) {
 	timefromReport := 0
 
 	for {
 		if timefromReport >= cli.reportInterval {
 			timefromReport = 0
-			cli.PushMetricsJSON()
+			cli.PushMetricsJSON(ctx)
 		}
 
 		cli.ReadMetrics()

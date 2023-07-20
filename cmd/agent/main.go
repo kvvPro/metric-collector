@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+
 	"github.com/kvvPro/metric-collector/cmd/agent/client"
 	"github.com/kvvPro/metric-collector/cmd/agent/config"
 	"go.uber.org/zap"
@@ -30,5 +32,5 @@ func main() {
 		"addr", agentFlags.Address,
 	)
 
-	agent.Run()
+	agent.Run(context.Background())
 }

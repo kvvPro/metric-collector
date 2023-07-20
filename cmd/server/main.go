@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"os/signal"
@@ -46,20 +47,20 @@ func main() {
 
 	app.Sugar.Infoln("before init config")
 
-	go startServer(srv, &srvFlags)
-	go srv.AsyncSaving()
+	go startServer(context.Background(), srv, &srvFlags)
+	go srv.AsyncSaving(context.Background())
 
 	sigQuit := <-shutdown
 	app.Sugar.Infoln("Server shutdown by signal: ", sigQuit)
 	app.Sugar.Infoln("Try to save metrics...")
-	err = srv.SaveToFile()
+	err = srv.SaveToFile(context.Background())
 	if err != nil {
 		app.Sugar.Infoln("Save to file failed: ", err.Error())
 	}
 	app.Sugar.Infoln("Metrics saved")
 }
 
-func startServer(srv *app.Server, srvFlags *config.ServerFlags) {
+func startServer(ctx context.Context, srv *app.Server, srvFlags *config.ServerFlags) {
 	r := chi.NewMux()
 	r.Use(app.GzipMiddleware,
 		app.WithLogging)
@@ -74,7 +75,7 @@ func startServer(srv *app.Server, srvFlags *config.ServerFlags) {
 
 	app.Sugar.Infoln("before restoring values")
 
-	srv.RestoreValues()
+	srv.RestoreValues(ctx)
 
 	app.Sugar.Infoln("after restoring values")
 

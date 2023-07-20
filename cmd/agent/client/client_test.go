@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"reflect"
 	"testing"
 )
@@ -116,7 +117,7 @@ func TestClient_PushMetrics(t *testing.T) {
 				Address:        tt.fields.address,
 				contentType:    tt.fields.contentType,
 			}
-			cli.PushMetricsJSON()
+			cli.PushMetricsJSON(context.Background())
 		})
 	}
 }

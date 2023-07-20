@@ -53,8 +53,8 @@ func (s *Settings) Ping(ctx context.Context) error {
 }
 
 // depricated
-func (s *Settings) Update(t string, n string, v string) error {
-	return nil
+func (s *Settings) Update(ctx context.Context, t string, n string, v string) error {
+	return errors.New("func is depricated")
 }
 
 func (s *Settings) UpdateNew(ctx context.Context, mtype string, mname string, delta *int64, value *float64) error {
@@ -319,17 +319,14 @@ func getInitQuery() string {
 	`
 }
 
-func (s *Settings) GetValue(t string, n string) (any, error) {
-	var val any
-
-	return val, nil
+// depricated
+func (s *Settings) GetValue(ctx context.Context, t string, n string) (any, error) {
+	return nil, errors.New("func is depricated")
 }
 
 // depricated
-func (s *Settings) GetAllMetrics() []storage.Metric {
-	m := []storage.Metric{}
-
-	return m
+func (s *Settings) GetAllMetrics(ctx context.Context) ([]storage.Metric, error) {
+	return nil, errors.New("func is depricated")
 }
 
 func (s *Settings) GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, error) {
