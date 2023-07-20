@@ -23,20 +23,19 @@ type Timer interface {
 }
 
 type Config struct {
-	attempts                uint
-	attemptsForError        map[error]uint
-	pauseBeforeFirstAttempt bool
-	delay                   time.Duration
-	initDelay               time.Duration
-	stepDelay               time.Duration
-	maxDelay                time.Duration
-	maxJitter               time.Duration
-	onRetry                 OnRetryFunc
-	retryIf                 RetryIfFunc
-	delayType               DelayTypeFunc
-	lastErrorOnly           bool
-	context                 context.Context
-	timer                   Timer
+	attempts         uint
+	attemptsForError map[error]uint
+	delay            time.Duration
+	initDelay        time.Duration
+	stepDelay        time.Duration
+	maxDelay         time.Duration
+	maxJitter        time.Duration
+	onRetry          OnRetryFunc
+	retryIf          RetryIfFunc
+	delayType        DelayTypeFunc
+	lastErrorOnly    bool
+	context          context.Context
+	timer            Timer
 
 	maxBackOffN uint
 }
@@ -70,12 +69,6 @@ func Attempts(attempts uint) Option {
 func AttemptsForError(attempts uint, err error) Option {
 	return func(c *Config) {
 		c.attemptsForError[err] = attempts
-	}
-}
-
-func PauseBeforeFirstAttempt(pause bool) Option {
-	return func(c *Config) {
-		c.pauseBeforeFirstAttempt = pause
 	}
 }
 

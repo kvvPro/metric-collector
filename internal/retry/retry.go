@@ -132,10 +132,6 @@ func Do(retryableFunc RetryableFunc, opts ...Option) error {
 	lastErrIndex := n
 	shouldRetry := true
 	for shouldRetry {
-		// first attempt and need to pause before that
-		if config.pauseBeforeFirstAttempt && n == 0 {
-			<-config.timer.After(delay(config, n, nil))
-		}
 
 		err := retryableFunc()
 
@@ -161,15 +157,8 @@ func Do(retryableFunc RetryableFunc, opts ...Option) error {
 				break
 			}
 
-			var attemptForDelay uint
-			if config.pauseBeforeFirstAttempt {
-				attemptForDelay = n + 1
-			} else {
-				attemptForDelay = n
-			}
-
 			select {
-			case <-config.timer.After(delay(config, attemptForDelay, err)):
+			case <-config.timer.After(delay(config, n, err)):
 			case <-config.context.Done():
 				if config.lastErrorOnly {
 					return config.context.Err()
