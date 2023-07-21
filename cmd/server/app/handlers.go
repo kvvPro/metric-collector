@@ -31,6 +31,13 @@ type (
 		http.ResponseWriter // встраиваем оригинальный http.ResponseWriter
 		responseData        *responseData
 	}
+
+	// определяем еще один тип, чтобы переопределить только метод Write
+	hashResponseWriter struct {
+		http.ResponseWriter
+		SetHash bool
+		HashKey string
+	}
 )
 
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
@@ -44,6 +51,14 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	// записываем код статуса, используя оригинальный http.ResponseWriter
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode // захватываем код статуса
+}
+
+func (r *hashResponseWriter) Write(b []byte) (int, error) {
+	// записываем ответ, используя оригинальный http.ResponseWriter
+	if r.SetHash {
+		r.ResponseWriter.Header().Set("HashSHA256", hash.GetHashSHA256(string(b), r.HashKey))
+	}
+	return r.ResponseWriter.Write(b)
 }
 
 func WithLogging(h http.Handler) http.Handler {
@@ -119,17 +134,27 @@ func (srv *Server) CheckHashMiddleware(h http.Handler) http.Handler {
 		requestHash := r.Header.Get("HashSHA256")
 		if requestHash != "" {
 			// проверяем хэш
-			originalHash := hash.GetHashSHA256(requestHash, srv.HashKey)
+			data, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			originalHash := hash.GetHashSHA256(string(data), srv.HashKey)
 			if originalHash != requestHash {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			// вычисляем хэш тела ответа
-			w.Header().Set("HashSHA256", "gzip")
+		}
+
+		// подменяем на наш writer
+		hw := hashResponseWriter{
+			ResponseWriter: w,
+			SetHash:        srv.CheckHash,
+			HashKey:        srv.HashKey,
 		}
 
 		// передаём управление хендлеру
-		h.ServeHTTP(w, r)
+		h.ServeHTTP(&hw, r)
 	}
 	return http.HandlerFunc(checkHashFunc)
 }
