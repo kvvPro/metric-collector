@@ -3,6 +3,8 @@ package app
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -56,7 +58,8 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 func (r *hashResponseWriter) Write(b []byte) (int, error) {
 	// записываем ответ, используя оригинальный http.ResponseWriter
 	if r.SetHash {
-		r.ResponseWriter.Header().Set("HashSHA256", hash.GetHashSHA256(string(b), r.HashKey))
+		hash := hash.GetHashSHA256(string(b), r.HashKey)
+		r.ResponseWriter.Header().Set("HashSHA256", base64.URLEncoding.EncodeToString(hash))
 	}
 	return r.ResponseWriter.Write(b)
 }
@@ -140,10 +143,17 @@ func (srv *Server) CheckHashMiddleware(h http.Handler) http.Handler {
 				return
 			}
 			originalHash := hash.GetHashSHA256(string(data), srv.HashKey)
-			if originalHash != requestHash {
+			decodeHash, err := base64.URLEncoding.DecodeString(requestHash)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			if !hmac.Equal(originalHash, decodeHash) {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
+			// возвращаем тело запроса
+			r.Body = io.NopCloser(bytes.NewReader(data))
 		}
 
 		// подменяем на наш writer
