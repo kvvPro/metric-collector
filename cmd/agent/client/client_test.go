@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"reflect"
 	"testing"
 )
@@ -116,42 +117,7 @@ func TestClient_PushMetrics(t *testing.T) {
 				Address:        tt.fields.address,
 				contentType:    tt.fields.contentType,
 			}
-			cli.PushMetrics()
-		})
-	}
-}
-
-func TestClient_updateMetric(t *testing.T) {
-	type fields struct {
-		Metrics        Metrics
-		pollInterval   int
-		reportInterval int
-		address        string
-		contentType    string
-	}
-	type args struct {
-		metric Metric
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cli := &Client{
-				Metrics:        tt.fields.Metrics,
-				pollInterval:   tt.fields.pollInterval,
-				reportInterval: tt.fields.reportInterval,
-				Address:        tt.fields.address,
-				contentType:    tt.fields.contentType,
-			}
-			if err := cli.updateMetric(tt.args.metric); (err != nil) != tt.wantErr {
-				t.Errorf("Client.updateMetric() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			cli.PushMetricsJSON(context.Background())
 		})
 	}
 }

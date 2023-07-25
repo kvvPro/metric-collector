@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	mc "github.com/kvvPro/metric-collector/internal/metrics"
 	"go.uber.org/zap"
 )
 
@@ -110,6 +113,32 @@ func GzipMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(compressFunc)
 }
 
+func (srv *Server) PingHandle(w http.ResponseWriter, r *http.Request) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	dbpool, err := pgxpool.New(ctx, srv.DBConnection)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	defer dbpool.Close()
+
+	err = dbpool.Ping(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+
+	body := "OK!"
+	io.WriteString(w, body)
+}
+
 func (srv *Server) UpdateHandle(w http.ResponseWriter, r *http.Request) {
 	params, isValid := isValidUpdateParams(r, w)
 	if !isValid {
@@ -119,9 +148,10 @@ func (srv *Server) UpdateHandle(w http.ResponseWriter, r *http.Request) {
 	metricType := params[2]
 	metricName := params[3]
 	metricValue := params[4]
-	err := srv.AddMetric(metricType, metricName, metricValue)
+	err := srv.AddMetric(r.Context(), metricType, metricName, metricValue)
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	body := "OK!"
@@ -136,15 +166,21 @@ func (srv *Server) UpdateJSONHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, m := range requestedMetrics {
-		err := srv.AddMetricNew(m)
+		err := srv.AddMetricNew(r.Context(), m)
 		if err != nil {
-			panic(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 
-	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
+	updatedMetrics, err := srv.GetRequestedValues(r.Context(), requestedMetrics)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	bodyBuffer := new(bytes.Buffer)
 	if len(updatedMetrics) == 1 {
 		json.NewEncoder(bodyBuffer).Encode(updatedMetrics[0])
@@ -159,22 +195,40 @@ func (srv *Server) UpdateJSONHandle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func (srv *Server) UpdateBatchJSONHandle(w http.ResponseWriter, r *http.Request) {
+	requestedMetrics, isValid := isValidUpdateJSONParams(r, w)
+	if !isValid {
+		return
+	}
+
+	err := srv.AddMetricsBatch(r.Context(), requestedMetrics)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	testbody := "OK!"
+	io.WriteString(w, testbody)
+	w.WriteHeader(http.StatusOK)
+}
+
 func (srv *Server) GetValueJSONHandle(w http.ResponseWriter, r *http.Request) {
 	requestedMetrics, isValid := isValidGetValueJSONParams(r, w)
 	if !isValid {
 		return
 	}
 
-	// // check if ID+Type of requested metric not found in our storage
-	// for _, el := range requestedMetrics {
-	// 	if _, err := srv.GetMetricValue(el.MType, el.ID); err != nil {
-	// 		http.Error(w, err.Error(), http.StatusBadRequest)
-	// 		return
-	// 	}
-	// }
+	updatedMetrics, err := srv.GetRequestedValues(r.Context(), requestedMetrics)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	updatedMetrics := srv.GetRequestedValues(requestedMetrics)
-	allmetrics := srv.GetAllMetricsNew()
+	allmetrics, err := srv.GetAllMetricsNew(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	// error if one or more requested metrics weren't found in our store
 	if len(requestedMetrics) != len(updatedMetrics) {
@@ -210,7 +264,7 @@ func (srv *Server) GetValueHandle(w http.ResponseWriter, r *http.Request) {
 	metricType := params[2]
 	metricName := params[3]
 
-	val, err := srv.GetMetricValue(metricType, metricName)
+	val, err := srv.GetMetricValue(r.Context(), metricType, metricName)
 	if val == nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -232,7 +286,11 @@ func (srv *Server) AllMetricsHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metrics := srv.GetAllMetrics()
+	metrics, err := srv.GetAllMetricsNew(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	body := `<html>
 				<head>
 				<title></title>
@@ -253,7 +311,11 @@ func (srv *Server) AllMetricsHandle(w http.ResponseWriter, r *http.Request) {
 			</html>`
 	rows := ""
 	for _, el := range metrics {
-		rows += fmt.Sprintf("<tr><th>%v</th><th>%v</th></tr>", el.GetName(), el.GetValue())
+		if el.MType == mc.MetricTypeCounter {
+			rows += fmt.Sprintf("<tr><th>%v</th><th>%v</th></tr>", el.ID, *(el.Delta))
+		} else {
+			rows += fmt.Sprintf("<tr><th>%v</th><th>%v</th></tr>", el.ID, *(el.Value))
+		}
 	}
 
 	body = strings.ReplaceAll(body, "%rows", rows)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"os/signal"
@@ -8,7 +9,6 @@ import (
 
 	app "github.com/kvvPro/metric-collector/cmd/server/app"
 	"github.com/kvvPro/metric-collector/cmd/server/config"
-	store "github.com/kvvPro/metric-collector/internal/storage/memstorage"
 
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
@@ -34,33 +34,38 @@ func main() {
 
 	app.Sugar.Infoln("after init config")
 
-	storage := store.NewMemStorage()
-	srv := app.NewServer(&storage,
-		srvFlags.Address,
+	srv, err := app.NewServer(srvFlags.Address,
 		srvFlags.StoreInterval,
 		srvFlags.FileStoragePath,
-		srvFlags.Restore)
+		srvFlags.Restore,
+		srvFlags.DBConnection)
+
+	if err != nil {
+		app.Sugar.Fatalw(err.Error(), "event", "create server")
+	}
 
 	app.Sugar.Infoln("before init config")
 
-	go startServer(srv, &srvFlags)
-	go srv.AsyncSaving()
+	go startServer(context.Background(), srv, &srvFlags)
+	go srv.AsyncSaving(context.Background())
 
 	sigQuit := <-shutdown
 	app.Sugar.Infoln("Server shutdown by signal: ", sigQuit)
 	app.Sugar.Infoln("Try to save metrics...")
-	err = srv.SaveToFile()
+	err = srv.SaveToFile(context.Background())
 	if err != nil {
 		app.Sugar.Infoln("Save to file failed: ", err.Error())
 	}
 	app.Sugar.Infoln("Metrics saved")
 }
 
-func startServer(srv *app.Server, srvFlags *config.ServerFlags) {
+func startServer(ctx context.Context, srv *app.Server, srvFlags *config.ServerFlags) {
 	r := chi.NewMux()
 	r.Use(app.GzipMiddleware,
 		app.WithLogging)
 	// r.Use(app.WithLogging)
+	r.Handle("/ping", http.HandlerFunc(srv.PingHandle))
+	r.Handle("/updates/", http.HandlerFunc(srv.UpdateBatchJSONHandle))
 	r.Handle("/update/", http.HandlerFunc(srv.UpdateJSONHandle))
 	r.Handle("/update/*", http.HandlerFunc(srv.UpdateHandle))
 	r.Handle("/value/*", http.HandlerFunc(srv.GetValueHandle))
@@ -69,7 +74,7 @@ func startServer(srv *app.Server, srvFlags *config.ServerFlags) {
 
 	app.Sugar.Infoln("before restoring values")
 
-	srv.RestoreValues()
+	srv.RestoreValues(ctx)
 
 	app.Sugar.Infoln("after restoring values")
 

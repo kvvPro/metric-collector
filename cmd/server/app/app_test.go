@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -45,7 +46,7 @@ func TestServer_AddMetric(t *testing.T) {
 			srv := &Server{
 				storage: tt.fields.storage,
 			}
-			if err := srv.AddMetric(tt.args.metricType, tt.args.metricName, tt.args.metricValue); (err != nil) != tt.wantErr {
+			if err := srv.AddMetric(context.Background(), tt.args.metricType, tt.args.metricName, tt.args.metricValue); (err != nil) != tt.wantErr {
 				t.Errorf("Server.AddMetric() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -59,6 +60,8 @@ func TestNewServer(t *testing.T) {
 		storeInterval int
 		filePath      string
 		restore       bool
+		dbconn        string
+		// storageType   string
 	}
 	tests := []struct {
 		name    string
@@ -77,6 +80,8 @@ func TestNewServer(t *testing.T) {
 				storeInterval: 200,
 				filePath:      "/tmp/val.txt",
 				restore:       true,
+				// dbconn:        "user=postgres password=postgres host=localhost port=5432 dbname=postgres sslmode=disable",
+				// storageType:   "db",
 			},
 			want: &Server{
 				storage: &memstorage.MemStorage{
@@ -87,14 +92,16 @@ func TestNewServer(t *testing.T) {
 				StoreInterval:   200,
 				FileStoragePath: "/tmp/val.txt",
 				Restore:         true,
+				// DBConnection:    "user=postgres password=postgres host=localhost port=5432 dbname=postgres sslmode=disable",
+				StorageType: "memory",
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewServer(tt.args.store, tt.args.address, tt.args.storeInterval, tt.args.filePath, tt.args.restore)
-			if !reflect.DeepEqual(got, tt.want) {
+			got, err := NewServer(tt.args.address, tt.args.storeInterval, tt.args.filePath, tt.args.restore, tt.args.dbconn)
+			if err != nil || !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewServer() = %v, want %v", got, tt.want)
 			}
 		})
@@ -124,7 +131,7 @@ func TestServer_GetMetricValue(t *testing.T) {
 			srv := &Server{
 				storage: tt.fields.storage,
 			}
-			got, err := srv.GetMetricValue(tt.args.metricType, tt.args.metricName)
+			got, err := srv.GetMetricValue(context.Background(), tt.args.metricType, tt.args.metricName)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Server.GetMetricValue() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -153,7 +160,7 @@ func TestServer_GetAllMetrics(t *testing.T) {
 			srv := &Server{
 				storage: tt.fields.storage,
 			}
-			if got := srv.GetAllMetrics(); !reflect.DeepEqual(got, tt.want) {
+			if got, err := srv.GetAllMetrics(context.Background()); !reflect.DeepEqual(got, tt.want) || err != nil {
 				t.Errorf("Server.GetAllMetrics() = %v, want %v", got, tt.want)
 			}
 		})
