@@ -54,7 +54,7 @@ func TestNewClient(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewClient(tt.args.pollInterval, tt.args.reportInterval, tt.args.address, tt.args.contentType, "")
+			got, err := NewClient(tt.args.pollInterval, tt.args.reportInterval, tt.args.address, tt.args.contentType, "", 2)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -89,7 +89,7 @@ func TestClient_ReadMetrics(t *testing.T) {
 				Address:        tt.fields.address,
 				contentType:    tt.fields.contentType,
 			}
-			cli.ReadMetrics()
+			cli.ReadMetrics(context.Background())
 		})
 	}
 }

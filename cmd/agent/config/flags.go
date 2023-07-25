@@ -12,6 +12,7 @@ type ClientFlags struct {
 	ReportInterval int    `env:"REPORT_INTERVAL"`
 	PollInterval   int    `env:"POLL_INTERVAL"`
 	HashKey        string `env:"KEY"`
+	RateLimit      int    `env:"RATE_LIMIT"`
 }
 
 func Initialize() ClientFlags {
@@ -25,6 +26,8 @@ func Initialize() ClientFlags {
 		"Wait interval in seconds before reading metrics")
 	pflag.StringVarP(&agentFlags.HashKey, "key", "k", "",
 		"Hash key to calculate hash sum")
+	pflag.IntVarP(&agentFlags.RateLimit, "rateLimit", "l", 2,
+		"Max count of parallel outbound requests to server")
 
 	pflag.Parse()
 
@@ -33,6 +36,7 @@ func Initialize() ClientFlags {
 	fmt.Printf("\nREPORT_INTERVAL=%v", agentFlags.ReportInterval)
 	fmt.Printf("\nPOLL_INTERVAL=%v", agentFlags.PollInterval)
 	fmt.Printf("\nKEY=%v", agentFlags.HashKey)
+	fmt.Printf("\nRATE_LIMIT=%v", agentFlags.RateLimit)
 	fmt.Println()
 
 	// try to get vars from env
@@ -45,6 +49,7 @@ func Initialize() ClientFlags {
 	fmt.Printf("\nREPORT_INTERVAL=%v", agentFlags.ReportInterval)
 	fmt.Printf("\nPOLL_INTERVAL=%v", agentFlags.PollInterval)
 	fmt.Printf("\nKEY=%v", agentFlags.HashKey)
+	fmt.Printf("\nRATE_LIMIT=%v", agentFlags.RateLimit)
 
 	return *agentFlags
 }
