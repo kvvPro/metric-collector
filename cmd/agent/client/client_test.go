@@ -43,7 +43,7 @@ func TestNewClient(t *testing.T) {
 				contentType:    "text/plain",
 				needToHash:     true,
 				hashKey:        "opa",
-				//queue:          nil,
+				// queue:          nil,
 				maxWorkerCount: 2,
 			},
 			wantErr: false,
