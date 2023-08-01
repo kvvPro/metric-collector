@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
@@ -61,7 +62,7 @@ func NewClient(pollInterval int, reportInterval int, address string, contentType
 		contentType:    contentType,
 		hashKey:        hashKey,
 		needToHash:     hashKey != "",
-		queue:          make(chan []metrics.Metric),
+		queue:          make(chan []metrics.Metric, rateLimit),
 		maxWorkerCount: rateLimit,
 	}, nil
 }
@@ -76,6 +77,8 @@ func (cli *Client) ReadMetrics(ctx context.Context) {
 
 		// send metrics to channel
 		mslice := DeepFieldsNew(cli.Metrics)
+
+		fmt.Println("Read metrics - 1")
 		cli.queue <- mslice
 
 		select {
@@ -101,10 +104,15 @@ func (cli *Client) ReadSpecificMetrics(ctx context.Context) {
 		newTotal := metrics.NewCommonMetric("TotalMemory", metrics.MetricTypeGauge, nil, &total)
 		free := float64(memstats.Free)
 		newFree := metrics.NewCommonMetric("FreeMemory", metrics.MetricTypeGauge, nil, &free)
-		cpu := cpustat[0]
-		newCPU := metrics.NewCommonMetric("CPUutilization1", metrics.MetricTypeGauge, nil, &cpu)
+		fields = append(fields, *newTotal, *newFree)
 
-		fields = append(fields, *newTotal, *newFree, *newCPU)
+		for i := 0; i < len(cpustat); i++ {
+			cpu := cpustat[i]
+			newCPU := metrics.NewCommonMetric("CPUutilization"+fmt.Sprint(i), metrics.MetricTypeGauge, nil, &cpu)
+			fields = append(fields, *newCPU)
+		}
+
+		//fmt.Println("Read metrics - 1")
 
 		cli.queue <- fields
 
