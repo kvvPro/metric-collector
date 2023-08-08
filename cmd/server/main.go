@@ -38,7 +38,8 @@ func main() {
 		srvFlags.StoreInterval,
 		srvFlags.FileStoragePath,
 		srvFlags.Restore,
-		srvFlags.DBConnection)
+		srvFlags.DBConnection,
+		srvFlags.HashKey)
 
 	if err != nil {
 		app.Sugar.Fatalw(err.Error(), "event", "create server")
@@ -61,7 +62,8 @@ func main() {
 
 func startServer(ctx context.Context, srv *app.Server, srvFlags *config.ServerFlags) {
 	r := chi.NewMux()
-	r.Use(app.GzipMiddleware,
+	r.Use(srv.CheckHashMiddleware,
+		app.GzipMiddleware,
 		app.WithLogging)
 	// r.Use(app.WithLogging)
 	r.Handle("/ping", http.HandlerFunc(srv.PingHandle))

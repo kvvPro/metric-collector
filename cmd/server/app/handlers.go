@@ -3,6 +3,8 @@ package app
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kvvPro/metric-collector/internal/hash"
 	mc "github.com/kvvPro/metric-collector/internal/metrics"
 	"go.uber.org/zap"
 )
@@ -30,6 +33,13 @@ type (
 		http.ResponseWriter // встраиваем оригинальный http.ResponseWriter
 		responseData        *responseData
 	}
+
+	// определяем еще один тип, чтобы переопределить только метод Write
+	hashResponseWriter struct {
+		http.ResponseWriter
+		SetHash bool
+		HashKey string
+	}
 )
 
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
@@ -43,6 +53,15 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	// записываем код статуса, используя оригинальный http.ResponseWriter
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode // захватываем код статуса
+}
+
+func (r *hashResponseWriter) Write(b []byte) (int, error) {
+	// записываем ответ, используя оригинальный http.ResponseWriter
+	if r.SetHash {
+		hash := hash.GetHashSHA256(string(b), r.HashKey)
+		r.ResponseWriter.Header().Set("HashSHA256", base64.URLEncoding.EncodeToString(hash))
+	}
+	return r.ResponseWriter.Write(b)
 }
 
 func WithLogging(h http.Handler) http.Handler {
@@ -111,6 +130,43 @@ func GzipMiddleware(h http.Handler) http.Handler {
 		h.ServeHTTP(ow, r)
 	}
 	return http.HandlerFunc(compressFunc)
+}
+
+func (srv *Server) CheckHashMiddleware(h http.Handler) http.Handler {
+	checkHashFunc := func(w http.ResponseWriter, r *http.Request) {
+		requestHash := r.Header.Get("HashSHA256")
+		if requestHash != "" {
+			// проверяем хэш
+			data, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			originalHash := hash.GetHashSHA256(string(data), srv.HashKey)
+			decodeHash, err := base64.URLEncoding.DecodeString(requestHash)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			if !hmac.Equal(originalHash, decodeHash) {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			// возвращаем тело запроса
+			r.Body = io.NopCloser(bytes.NewReader(data))
+		}
+
+		// подменяем на наш writer
+		hw := hashResponseWriter{
+			ResponseWriter: w,
+			SetHash:        srv.CheckHash,
+			HashKey:        srv.HashKey,
+		}
+
+		// передаём управление хендлеру
+		h.ServeHTTP(&hw, r)
+	}
+	return http.HandlerFunc(checkHashFunc)
 }
 
 func (srv *Server) PingHandle(w http.ResponseWriter, r *http.Request) {

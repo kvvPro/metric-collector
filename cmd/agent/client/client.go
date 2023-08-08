@@ -4,13 +4,19 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
 	"runtime"
 	"time"
 
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
+
+	"github.com/kvvPro/metric-collector/internal/hash"
 	"github.com/kvvPro/metric-collector/internal/metrics"
 	"github.com/kvvPro/metric-collector/internal/retry"
 
@@ -30,6 +36,9 @@ type Metrics struct {
 	runtime.MemStats
 	PollCount   int64
 	RandomValue float64
+	// TotalMemory     float64
+	// FreeMemory      float64
+	// CPUutilization1 float64
 }
 
 type Client struct {
@@ -38,42 +47,112 @@ type Client struct {
 	reportInterval int
 	Address        string
 	contentType    string
+	needToHash     bool
+	hashKey        string
+	queue          chan []metrics.Metric
+	maxWorkerCount int
 }
 
-func NewClient(pollInterval int, reportInterval int, address string, contentType string) (*Client, error) {
+func NewClient(pollInterval int, reportInterval int, address string, contentType string, hashKey string, rateLimit int) (*Client, error) {
 	return &Client{
 		Metrics:        Metrics{},
 		pollInterval:   pollInterval,
 		reportInterval: reportInterval,
 		Address:        address,
 		contentType:    contentType,
+		hashKey:        hashKey,
+		needToHash:     hashKey != "",
+		queue:          make(chan []metrics.Metric, rateLimit),
+		maxWorkerCount: rateLimit,
 	}, nil
 }
 
-func (cli *Client) ReadMetrics() {
-	runtime.ReadMemStats(&cli.Metrics.MemStats)
-	cli.Metrics.PollCount += 1
-	cli.Metrics.RandomValue = 0.1 + rand.Float64()*(1000-0.1)
+func (cli *Client) ReadMetrics(ctx context.Context) {
+	for {
+		runtime.ReadMemStats(&cli.Metrics.MemStats)
+
+		// т.к. отправляем все попытки чтений - то PollCount всегда 1
+		cli.Metrics.PollCount = 1
+		cli.Metrics.RandomValue = 0.1 + rand.Float64()*(1000-0.1)
+
+		// send metrics to channel
+		mslice := DeepFieldsNew(cli.Metrics)
+
+		fmt.Println("Read metrics - 1")
+		cli.queue <- mslice
+
+		select {
+		case <-time.After(time.Duration(cli.pollInterval) * time.Second):
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (cli *Client) ReadSpecificMetrics(ctx context.Context) {
+	for {
+		fields := make([]metrics.Metric, 0)
+		memstats, err := mem.VirtualMemory()
+		cpustat, errs := cpu.PercentWithContext(ctx, 0, false)
+		if err != nil {
+			continue
+		}
+		if errs != nil {
+			continue
+		}
+		total := float64(memstats.Total)
+		newTotal := metrics.NewCommonMetric("TotalMemory", metrics.MetricTypeGauge, nil, &total)
+		free := float64(memstats.Free)
+		newFree := metrics.NewCommonMetric("FreeMemory", metrics.MetricTypeGauge, nil, &free)
+		fields = append(fields, *newTotal, *newFree)
+
+		for i := 0; i < len(cpustat); i++ {
+			cpu := cpustat[i]
+			newCPU := metrics.NewCommonMetric("CPUutilization"+fmt.Sprint(i), metrics.MetricTypeGauge, nil, &cpu)
+			fields = append(fields, *newCPU)
+		}
+
+		//fmt.Println("Read metrics - 1")
+
+		cli.queue <- fields
+
+		select {
+		case <-time.After(time.Duration(cli.pollInterval) * time.Second):
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 func (cli *Client) PushMetricsJSON(ctx context.Context) {
-	mslice := DeepFieldsNew(cli.Metrics)
+	// read from channel
+	for {
+		// wait interval
+		select {
+		case <-time.After(time.Duration(cli.reportInterval) * time.Second):
+		case <-ctx.Done():
+			return
+		}
 
-	err := retry.Do(
-		func() error {
-			return cli.updateBatchMetricsJSON(mslice)
-		},
-		retry.Attempts(3),
-		retry.InitDelay(1000*time.Millisecond),
-		retry.Step(2000*time.Millisecond),
-		retry.Context(ctx),
-	)
-	if err != nil {
-		Sugar.Infoln(err.Error())
+		m, opened := <-cli.queue
+		if !opened {
+			// channel is closed
+			return
+		}
+
+		err := retry.Do(
+			func() error {
+				return cli.updateBatchMetricsJSON(m)
+			},
+			retry.Attempts(3),
+			retry.InitDelay(1000*time.Millisecond),
+			retry.Step(2000*time.Millisecond),
+			retry.Context(ctx),
+		)
+		if err != nil {
+			Sugar.Infoln(err.Error())
+		}
 	}
-
-	// обнуляем PollCount
-	cli.Metrics.PollCount = 0
 }
 
 func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
@@ -99,6 +178,10 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 
 	request.Header.Set("Connection", "Keep-Alive")
 	request.Header.Set("Content-Encoding", "gzip")
+	if cli.needToHash {
+		hash := hash.GetHashSHA256(bodyBuffer.String(), cli.hashKey)
+		request.Header.Set("HashSHA256", base64.URLEncoding.EncodeToString(hash))
+	}
 	response, err := client.Do(request)
 	if err != nil {
 		Sugar.Infoln("Error response: ", err.Error())
@@ -126,17 +209,11 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 }
 
 func (cli *Client) Run(ctx context.Context) {
-	timefromReport := 0
-
-	for {
-		if timefromReport >= cli.reportInterval {
-			timefromReport = 0
-			cli.PushMetricsJSON(ctx)
-		}
-
-		cli.ReadMetrics()
-
-		time.Sleep(time.Duration(cli.pollInterval) * time.Second)
-		timefromReport += cli.pollInterval
+	for i := 0; i < cli.maxWorkerCount; i++ {
+		go cli.PushMetricsJSON(ctx)
 	}
+	go cli.ReadSpecificMetrics(ctx)
+
+	cli.ReadMetrics(ctx)
+
 }
