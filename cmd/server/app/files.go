@@ -20,6 +20,7 @@ func (srv *Server) SaveToFile(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	// сохраняем данные в файл
 	return os.WriteFile(srv.FileStoragePath, data, 0666)
 }
