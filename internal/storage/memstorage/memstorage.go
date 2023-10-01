@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"
-	"github.com/kvvPro/metric-collector/internal/storage"
 )
 
 type MemStorage struct {
@@ -101,22 +100,6 @@ func (s *MemStorage) GetValue(ctx context.Context, t string, n string) (any, err
 	}
 
 	return val, nil
-}
-
-func (s *MemStorage) GetAllMetrics(ctx context.Context) ([]storage.Metric, error) {
-	m := []storage.Metric{}
-
-	for name, val := range s.Counters {
-		c := metrics.NewCounter(name, "int64", val)
-		m = append(m, c)
-	}
-
-	for name, val := range s.Gauges {
-		c := metrics.NewGauge(name, "float64", val)
-		m = append(m, c)
-	}
-
-	return m, nil
 }
 
 func (s *MemStorage) GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, error) {

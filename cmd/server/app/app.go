@@ -190,11 +190,6 @@ func (srv *Server) GetRequestedValues(ctx context.Context, m []metrics.Metric) (
 	return result, nil
 }
 
-func (srv *Server) GetAllMetrics(ctx context.Context) ([]storage.Metric, error) {
-	val, err := srv.storage.GetAllMetrics(ctx)
-	return val, err
-}
-
 func (srv *Server) GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, error) {
 	var val []*metrics.Metric
 	var err error

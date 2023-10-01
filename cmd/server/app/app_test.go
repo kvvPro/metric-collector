@@ -160,9 +160,19 @@ func TestServer_GetAllMetrics(t *testing.T) {
 			srv := &Server{
 				storage: tt.fields.storage,
 			}
-			if got, err := srv.GetAllMetrics(context.Background()); !reflect.DeepEqual(got, tt.want) || err != nil {
+			if got, err := srv.GetAllMetricsNew(context.Background()); !reflect.DeepEqual(got, tt.want) || err != nil {
 				t.Errorf("Server.GetAllMetrics() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func BenchmarkGetAllMetrics(b *testing.B) {
+	memst := memstorage.NewMemStorage()
+	srv := &Server{
+		storage: &memst,
+	}
+	for i := 0; i < b.N; i++ {
+		srv.GetAllMetricsNew(context.Background())
 	}
 }

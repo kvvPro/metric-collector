@@ -73,7 +73,7 @@ func TestMemStorage_GetAllMetrics(t *testing.T) {
 				Gauges:   tt.fields.Gauges,
 				Counters: tt.fields.Counters,
 			}
-			if got, err := s.GetAllMetrics(context.Background()); !reflect.DeepEqual(got, tt.want) || err != nil {
+			if got, err := s.GetAllMetricsNew(context.Background()); !reflect.DeepEqual(got, tt.want) || err != nil {
 				t.Errorf("MemStorage.GetAllMetrics() = %v, want %v", got, tt.want)
 			}
 		})
