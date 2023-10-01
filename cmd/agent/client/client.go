@@ -10,6 +10,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	_ "net/http/pprof"
 	"runtime"
 	"time"
 
@@ -214,6 +215,6 @@ func (cli *Client) Run(ctx context.Context) {
 	}
 	go cli.ReadSpecificMetrics(ctx)
 
-	cli.ReadMetrics(ctx)
+	go cli.ReadMetrics(ctx)
 
 }

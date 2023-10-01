@@ -2,6 +2,12 @@ package main
 
 import (
 	"context"
+	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"runtime"
+	rpprof "runtime/pprof"
+	"syscall"
 
 	"github.com/kvvPro/metric-collector/cmd/agent/client"
 	"github.com/kvvPro/metric-collector/cmd/agent/config"
@@ -9,6 +15,8 @@ import (
 )
 
 func main() {
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
 	logger, err := zap.NewDevelopment()
 	if err != nil {
@@ -33,4 +41,18 @@ func main() {
 	)
 
 	agent.Run(context.Background())
+
+	sigQuit := <-shutdown
+	client.Sugar.Infoln("Server shutdown by signal: ", sigQuit)
+
+	// создаём файл журнала профилирования памяти
+	fmem, err := os.Create(agentFlags.MemProfile)
+	if err != nil {
+		panic(err)
+	}
+	defer fmem.Close()
+	runtime.GC() // получаем статистику по использованию памяти
+	if err := rpprof.WriteHeapProfile(fmem); err != nil {
+		panic(err)
+	}
 }

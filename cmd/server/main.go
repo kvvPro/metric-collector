@@ -6,6 +6,8 @@ import (
 	"net/http/pprof"
 	"os"
 	"os/signal"
+	"runtime"
+	rpprof "runtime/pprof"
 	"syscall"
 
 	app "github.com/kvvPro/metric-collector/cmd/server/app"
@@ -52,6 +54,18 @@ func main() {
 	go srv.AsyncSaving(context.Background())
 
 	sigQuit := <-shutdown
+
+	// создаём файл журнала профилирования памяти
+	fmem, err := os.Create(srvFlags.MemProfile)
+	if err != nil {
+		panic(err)
+	}
+	defer fmem.Close()
+	runtime.GC() // получаем статистику по использованию памяти
+	if err := rpprof.WriteHeapProfile(fmem); err != nil {
+		panic(err)
+	}
+
 	app.Sugar.Infoln("Server shutdown by signal: ", sigQuit)
 	app.Sugar.Infoln("Try to save metrics...")
 	err = srv.SaveToFile(context.Background())

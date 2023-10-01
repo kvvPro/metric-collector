@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	_ "net/http/pprof"
 	"time"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"

@@ -1,6 +1,7 @@
 package client
 
 import (
+	_ "net/http/pprof"
 	"reflect"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"

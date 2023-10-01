@@ -3,6 +3,7 @@ package memstorage
 import (
 	"context"
 	"errors"
+	_ "net/http/pprof"
 	"strconv"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"

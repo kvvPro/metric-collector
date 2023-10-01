@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	_ "net/http/pprof"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"
 

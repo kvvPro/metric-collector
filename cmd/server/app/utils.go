@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	_ "net/http/pprof"
 	"regexp"
 	"strings"
 

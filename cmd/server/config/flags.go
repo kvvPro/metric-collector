@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 
+	_ "net/http/pprof"
+
 	"github.com/caarlos0/env/v8"
 	"github.com/spf13/pflag"
 )
@@ -14,6 +16,7 @@ type ServerFlags struct {
 	Restore         bool   `env:"RESTORE"`
 	DBConnection    string `env:"DATABASE_DSN"`
 	HashKey         string `env:"KEY"`
+	MemProfile      string `env:"MEM_PROFILE"`
 }
 
 func Initialize() ServerFlags {
@@ -30,6 +33,7 @@ func Initialize() ServerFlags {
 		"True if restore values from file stored in FILE_STORAGE_PATH")
 	pflag.StringVarP(&srvFlags.HashKey, "hashKey", "k", "",
 		"Hash key to calculate hash sum")
+	pflag.StringVarP(&srvFlags.MemProfile, "mem", "m", "base.pprof", "Path to file where mem stats will be saved")
 
 	pflag.Parse()
 
@@ -40,6 +44,7 @@ func Initialize() ServerFlags {
 	fmt.Printf("RESTORE=%v", srvFlags.Restore)
 	fmt.Printf("DATABASE_DSN=%v", srvFlags.DBConnection)
 	fmt.Printf("KEY=%v", srvFlags.HashKey)
+	fmt.Printf("MEM_PROFILE=%v", srvFlags.MemProfile)
 
 	// try to get vars from env
 	if err := env.Parse(srvFlags); err != nil {
@@ -52,6 +57,7 @@ func Initialize() ServerFlags {
 	fmt.Printf("RESTORE=%v", srvFlags.Restore)
 	fmt.Printf("DATABASE_DSN=%v", srvFlags.DBConnection)
 	fmt.Printf("KEY=%v", srvFlags.HashKey)
+	fmt.Printf("MEM_PROFILE=%v", srvFlags.MemProfile)
 
 	return *srvFlags
 }

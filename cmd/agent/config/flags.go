@@ -13,6 +13,7 @@ type ClientFlags struct {
 	PollInterval   int    `env:"POLL_INTERVAL"`
 	HashKey        string `env:"KEY"`
 	RateLimit      int    `env:"RATE_LIMIT"`
+	MemProfile     string `env:"MEM_PROFILE"`
 }
 
 func Initialize() ClientFlags {
@@ -28,6 +29,7 @@ func Initialize() ClientFlags {
 		"Hash key to calculate hash sum")
 	pflag.IntVarP(&agentFlags.RateLimit, "rateLimit", "l", 2,
 		"Max count of parallel outbound requests to server")
+	pflag.StringVarP(&agentFlags.MemProfile, "mem", "m", "base.pprof", "Path to file where mem stats will be saved")
 
 	pflag.Parse()
 
@@ -37,6 +39,7 @@ func Initialize() ClientFlags {
 	fmt.Printf("\nPOLL_INTERVAL=%v", agentFlags.PollInterval)
 	fmt.Printf("\nKEY=%v", agentFlags.HashKey)
 	fmt.Printf("\nRATE_LIMIT=%v", agentFlags.RateLimit)
+	fmt.Printf("\nMEM_PROFILE=%v", agentFlags.MemProfile)
 	fmt.Println()
 
 	// try to get vars from env
@@ -50,6 +53,7 @@ func Initialize() ClientFlags {
 	fmt.Printf("\nPOLL_INTERVAL=%v", agentFlags.PollInterval)
 	fmt.Printf("\nKEY=%v", agentFlags.HashKey)
 	fmt.Printf("\nRATE_LIMIT=%v", agentFlags.RateLimit)
+	fmt.Printf("\nMEM_PROFILE=%v", agentFlags.MemProfile)
 
 	return *agentFlags
 }
