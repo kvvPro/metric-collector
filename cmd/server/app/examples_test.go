@@ -28,6 +28,8 @@ func ExampleServer_PingHandle() {
 		fmt.Printf("Error response: %v", err.Error())
 		return
 	}
+	defer response.Body.Close()
+
 	if response.StatusCode != http.StatusOK {
 		fmt.Printf("Error response")
 		return
@@ -75,6 +77,8 @@ func ExampleServer_UpdateBatchJSONHandle() {
 		fmt.Printf("Error response: %v", err.Error())
 		return
 	}
+	defer response.Body.Close()
+
 	if response.StatusCode != http.StatusOK {
 		fmt.Printf("Error response")
 		return
@@ -98,6 +102,8 @@ func ExampleServer_AllMetricsHandle() {
 		fmt.Printf("Error response: %v", err.Error())
 		return
 	}
+
+	defer response.Body.Close()
 
 	dataResponse, err := io.ReadAll(response.Body)
 	if err != nil {
