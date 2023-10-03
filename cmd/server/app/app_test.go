@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/kvvPro/metric-collector/internal/metrics"
 	st "github.com/kvvPro/metric-collector/internal/storage"
 	"github.com/kvvPro/metric-collector/internal/storage/memstorage"
 )
@@ -174,5 +175,26 @@ func BenchmarkGetAllMetrics(b *testing.B) {
 	}
 	for i := 0; i < b.N; i++ {
 		srv.GetAllMetricsNew(context.Background())
+	}
+}
+
+func BenchmarkGetMetricValue(b *testing.B) {
+	memst := memstorage.NewMemStorage()
+	srv := &Server{
+		storage: &memst,
+	}
+	for i := 0; i < b.N; i++ {
+		srv.GetMetricValue(context.Background(), "gauge", "mem_usage")
+	}
+}
+
+func BenchmarkUpdateMetric(b *testing.B) {
+	memst := memstorage.NewMemStorage()
+	srv := &Server{
+		storage: &memst,
+	}
+	val := 10.7
+	for i := 0; i < b.N; i++ {
+		srv.AddMetricNew(context.Background(), metrics.Metric{ID: "cpu", MType: "gauge", Value: &val})
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/kvvPro/metric-collector/internal/metrics"
 )
 
+// DeepFields recursively collect full array of metrics from stats
 func DeepFields(iface interface{}) []Metric {
 	fields := make([]Metric, 0)
 	ifv := reflect.ValueOf(iface)
@@ -32,6 +33,7 @@ func DeepFields(iface interface{}) []Metric {
 	return fields
 }
 
+// DeepFieldsNew recursively collect full array of metrics from stats
 func DeepFieldsNew(iface interface{}) []metrics.Metric {
 	fields := make([]metrics.Metric, 0)
 	ifv := reflect.ValueOf(iface)
@@ -57,6 +59,7 @@ func DeepFieldsNew(iface interface{}) []metrics.Metric {
 	return fields
 }
 
+// NewMetricStruct create metric from string parameters
 func NewMetricStruct(mname string, mtype string, ival reflect.Value) *metrics.Metric {
 	switch mtype {
 	case "float64":
@@ -76,6 +79,7 @@ func NewMetricStruct(mname string, mtype string, ival reflect.Value) *metrics.Me
 	}
 }
 
+// NewMetric create metric from string parameters
 func NewMetric(mname string, mtype string, ival reflect.Value) Metric {
 	switch mtype {
 	case "float64":

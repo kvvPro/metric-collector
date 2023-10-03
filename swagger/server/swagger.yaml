@@ -1,0 +1,233 @@
+definitions:
+  metrics.Metric:
+    properties:
+      delta:
+        description: значение метрики в случае передачи counter
+        type: integer
+      id:
+        description: имя метрики
+        type: string
+      type:
+        description: параметр, принимающий значение gauge или counter
+        type: string
+      value:
+        description: значение метрики в случае передачи gauge
+        type: number
+    type: object
+info:
+  contact: {}
+paths:
+  /ping:
+    get:
+      consumes:
+      - text/plain
+      description: Checking db connection
+      operationId: checksPing
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка
+          schema:
+            type: string
+      summary: Checking db connection
+      tags:
+      - checks
+  /update/:
+    post:
+      consumes:
+      - application/json
+      description: Update existed metric or add new metric from JSON data
+      operationId: updateJSON
+      parameters:
+      - description: Array of metrics
+        in: body
+        name: metric
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/metrics.Metric'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Invalid type or value
+          schema:
+            type: string
+        "404":
+          description: Missing name of metric
+          schema:
+            type: string
+        "405":
+          description: Invalid request type
+          schema:
+            type: string
+        "500":
+          description: Internal error
+          schema:
+            type: string
+      summary: Update metric, data in JSON
+      tags:
+      - update
+  /update/{type}/{name}/{value}:
+    post:
+      consumes:
+      - text/plain
+      description: Update existed metric or add new metric
+      operationId: update
+      parameters:
+      - description: Metric type
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: Metric name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Metric value
+        in: path
+        name: value
+        required: true
+        type: number
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Invalid type or value
+          schema:
+            type: string
+        "404":
+          description: Missing name of metric
+          schema:
+            type: string
+        "405":
+          description: Invalid request type
+          schema:
+            type: string
+        "500":
+          description: Internal error
+          schema:
+            type: string
+      summary: Update existed metric or add new metric
+      tags:
+      - update
+  /updates/:
+    post:
+      consumes:
+      - application/json
+      description: Update existed metric or add new metric from JSON array of metrics
+      operationId: updateBatch
+      parameters:
+      - description: Array of metrics
+        in: body
+        name: metrics
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/metrics.Metric'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Invalid type or value
+          schema:
+            type: string
+        "404":
+          description: Missing name of metric
+          schema:
+            type: string
+        "405":
+          description: Invalid request type
+          schema:
+            type: string
+        "500":
+          description: Internal error
+          schema:
+            type: string
+      summary: Batch update array of metrics, data in JSON
+      tags:
+      - update
+  /value/:
+    get:
+      consumes:
+      - application/json
+      description: Get metric value
+      operationId: getvalueJSON
+      parameters:
+      - description: metric
+        in: body
+        name: metric
+        required: true
+        schema:
+          $ref: '#/definitions/metrics.Metric'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Invalid type or value
+          schema:
+            type: string
+        "404":
+          description: Missing name of metric
+          schema:
+            type: string
+        "405":
+          description: Invalid request type
+          schema:
+            type: string
+        "500":
+          description: Internal error
+          schema:
+            type: string
+      summary: Get metric value
+      tags:
+      - getvalue
+  /value/{type}/{name}:
+    get:
+      consumes:
+      - text/plain
+      description: Get all metrics with current values
+      operationId: getvalue
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "405":
+          description: Invalid request type
+          schema:
+            type: string
+        "500":
+          description: Internal error
+          schema:
+            type: string
+      summary: Get all metrics
+      tags:
+      - getvalue
+swagger: "2.0"

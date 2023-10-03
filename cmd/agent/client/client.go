@@ -34,26 +34,36 @@ type Metric interface {
 }
 
 type Metrics struct {
+	// All runtime memory stats
 	runtime.MemStats
-	PollCount   int64
+	// counts of reading stats attempts
+	PollCount int64
+	// random value
 	RandomValue float64
-	// TotalMemory     float64
-	// FreeMemory      float64
-	// CPUutilization1 float64
 }
 
 type Client struct {
-	Metrics        Metrics
-	pollInterval   int
+	// array of metrics
+	Metrics Metrics
+	// timeout to read stats
+	pollInterval int
+	// timeout to send metrics to server
 	reportInterval int
-	Address        string
-	contentType    string
-	needToHash     bool
-	hashKey        string
-	queue          chan []metrics.Metric
+	// server address
+	Address string
+	// type of content
+	contentType string
+	// true if client will encrypt request body
+	needToHash bool
+	// key to encrypt request
+	hashKey string
+	// channel for exchange between goroutines - read and push threads
+	queue chan []metrics.Metric
+	// max count of parallel workers to push metrics to server
 	maxWorkerCount int
 }
 
+// NewClient creates instance of client
 func NewClient(pollInterval int, reportInterval int, address string, contentType string, hashKey string, rateLimit int) (*Client, error) {
 	return &Client{
 		Metrics:        Metrics{},
@@ -68,6 +78,7 @@ func NewClient(pollInterval int, reportInterval int, address string, contentType
 	}, nil
 }
 
+// ReadMetrics reads memory stats and send it to queue
 func (cli *Client) ReadMetrics(ctx context.Context) {
 	for {
 		runtime.ReadMemStats(&cli.Metrics.MemStats)
@@ -90,6 +101,7 @@ func (cli *Client) ReadMetrics(ctx context.Context) {
 	}
 }
 
+// ReadSpecificMetrics reads special stats and send it to queue
 func (cli *Client) ReadSpecificMetrics(ctx context.Context) {
 	for {
 		fields := make([]metrics.Metric, 0)
@@ -125,6 +137,7 @@ func (cli *Client) ReadSpecificMetrics(ctx context.Context) {
 	}
 }
 
+// PushMetricsJSON push metrics to server
 func (cli *Client) PushMetricsJSON(ctx context.Context) {
 	// read from channel
 	for {
@@ -209,6 +222,7 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 	return nil
 }
 
+// Run start client - read and push threads
 func (cli *Client) Run(ctx context.Context) {
 	for i := 0; i < cli.maxWorkerCount; i++ {
 		go cli.PushMetricsJSON(ctx)

@@ -10,6 +10,7 @@ import (
 	"github.com/kvvPro/metric-collector/internal/metrics"
 )
 
+// SaveToFile saves metrics to file
 func (srv *Server) SaveToFile(ctx context.Context) error {
 	// сериализуем структуру в JSON формат
 	m, err := srv.GetAllMetricsNew(ctx)
@@ -25,6 +26,7 @@ func (srv *Server) SaveToFile(ctx context.Context) error {
 	return os.WriteFile(srv.FileStoragePath, data, 0666)
 }
 
+// ReadFromFile reads all data from file
 func (srv *Server) ReadFromFile() ([]metrics.Metric, error) {
 	data, err := os.ReadFile(srv.FileStoragePath)
 	if err != nil {
