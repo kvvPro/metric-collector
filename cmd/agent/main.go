@@ -14,6 +14,10 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	buildVersion, buildDate, buildCommit string
+)
+
 func main() {
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
@@ -27,6 +31,9 @@ func main() {
 
 	// делаем регистратор SugaredLogger
 	client.Sugar = *logger.Sugar()
+	client.Sugar.Infof("\nBuild version: %v", buildVersion)
+	client.Sugar.Infof("\nBuild date: %v", buildDate)
+	client.Sugar.Infof("\nBuild commit: %v", buildCommit)
 
 	agentFlags := config.Initialize()
 	agent, err := client.NewClient(agentFlags.PollInterval, agentFlags.ReportInterval,
