@@ -3,9 +3,9 @@ package postgres
 import (
 	"context"
 	"errors"
+	_ "net/http/pprof"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"
-	"github.com/kvvPro/metric-collector/internal/storage"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -52,7 +52,7 @@ func (s *PostgresStorage) Ping(ctx context.Context) error {
 	return nil
 }
 
-// depricated
+// Depricated: use UpdateNew
 func (s *PostgresStorage) Update(ctx context.Context, t string, n string, v string) error {
 	return errors.New("func is depricated")
 }
@@ -321,11 +321,6 @@ func getInitQuery() string {
 
 // depricated
 func (s *PostgresStorage) GetValue(ctx context.Context, t string, n string) (any, error) {
-	return nil, errors.New("func is depricated")
-}
-
-// depricated
-func (s *PostgresStorage) GetAllMetrics(ctx context.Context) ([]storage.Metric, error) {
 	return nil, errors.New("func is depricated")
 }
 

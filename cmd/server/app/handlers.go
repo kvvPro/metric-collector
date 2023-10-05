@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	_ "net/http/pprof"
 	"strings"
 	"time"
 
@@ -18,7 +19,10 @@ import (
 	"go.uber.org/zap"
 )
 
+// Main logger
 var Sugar zap.SugaredLogger
+
+// type needed compress
 var ContentTypesForCompress = "application/json; text/html"
 
 type (
@@ -169,6 +173,16 @@ func (srv *Server) CheckHashMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(checkHashFunc)
 }
 
+// PingHandle godoc
+// @Tags checks
+// @Summary Checking db connection
+// @Description Checking db connection
+// @ID checksPing
+// @Accept  plain
+// @Produce plain
+// @Success 200 {string} string "OK"
+// @Failure 500 {string} string "Внутренняя ошибка"
+// @Router /ping [get]
 func (srv *Server) PingHandle(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -195,6 +209,22 @@ func (srv *Server) PingHandle(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, body)
 }
 
+// UpdateHandle godoc
+// @Tags update
+// @Summary Update existed metric or add new metric
+// @Description Update existed metric or add new metric
+// @ID update
+// @Accept  plain
+// @Produce plain
+// @Param type path string true "Metric type"
+// @Param name path string true "Metric name"
+// @Param value path number true "Metric value"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Invalid type or value"
+// @Failure 404 {string} string "Missing name of metric"
+// @Failure 405 {string} string "Invalid request type"
+// @Failure 500 {string} string "Internal error"
+// @Router /update/{type}/{name}/{value} [post]
 func (srv *Server) UpdateHandle(w http.ResponseWriter, r *http.Request) {
 	params, isValid := isValidUpdateParams(r, w)
 	if !isValid {
@@ -215,6 +245,20 @@ func (srv *Server) UpdateHandle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// UpdateJSONHandle godoc
+// @Tags update
+// @Summary Update metric, data in JSON
+// @Description Update existed metric or add new metric from JSON data
+// @ID updateJSON
+// @Accept  json
+// @Produce json
+// @Param metric body []metrics.Metric true "Array of metrics"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Invalid type or value"
+// @Failure 404 {string} string "Missing name of metric"
+// @Failure 405 {string} string "Invalid request type"
+// @Failure 500 {string} string "Internal error"
+// @Router /update/ [post]
 func (srv *Server) UpdateJSONHandle(w http.ResponseWriter, r *http.Request) {
 	requestedMetrics, isValid := isValidUpdateJSONParams(r, w)
 	if !isValid {
@@ -251,6 +295,20 @@ func (srv *Server) UpdateJSONHandle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// UpdateBatchJSONHandle godoc
+// @Tags update
+// @Summary Batch update array of metrics, data in JSON
+// @Description Update existed metric or add new metric from JSON array of metrics
+// @ID updateBatch
+// @Accept  json
+// @Produce json
+// @Param metrics body []metrics.Metric true "Array of metrics"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Invalid type or value"
+// @Failure 404 {string} string "Missing name of metric"
+// @Failure 405 {string} string "Invalid request type"
+// @Failure 500 {string} string "Internal error"
+// @Router /updates/ [post]
 func (srv *Server) UpdateBatchJSONHandle(w http.ResponseWriter, r *http.Request) {
 	requestedMetrics, isValid := isValidUpdateJSONParams(r, w)
 	if !isValid {
@@ -268,6 +326,20 @@ func (srv *Server) UpdateBatchJSONHandle(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 }
 
+// GetValueJSONHandle godoc
+// @Tags getvalue
+// @Summary Get metric value
+// @Description Get metric value
+// @ID getvalueJSON
+// @Accept  json
+// @Produce json
+// @Param metric body metrics.Metric true "metric"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Invalid type or value"
+// @Failure 404 {string} string "Missing name of metric"
+// @Failure 405 {string} string "Invalid request type"
+// @Failure 500 {string} string "Internal error"
+// @Router /value/ [get]
 func (srv *Server) GetValueJSONHandle(w http.ResponseWriter, r *http.Request) {
 	requestedMetrics, isValid := isValidGetValueJSONParams(r, w)
 	if !isValid {
@@ -312,6 +384,21 @@ func (srv *Server) GetValueJSONHandle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// GetValueHandle godoc
+// @Tags getvalue
+// @Summary Get value of existed metric
+// @Description Get value of existed metric
+// @ID getvalue
+// @Accept  plain
+// @Produce plain
+// @Param type path string true "Metric type"
+// @Param name path string true "Metric name"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Invalid type"
+// @Failure 404 {string} string "Missing name of metric"
+// @Failure 405 {string} string "Invalid request type"
+// @Failure 500 {string} string "Internal error"
+// @Router /value/{type}/{name} [get]
 func (srv *Server) GetValueHandle(w http.ResponseWriter, r *http.Request) {
 	params, isValid := isValidGetValueParams(r, w)
 	if !isValid {
@@ -330,6 +417,17 @@ func (srv *Server) GetValueHandle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// AllMetricsHandle godoc
+// @Tags getvalue
+// @Summary Get all metrics
+// @Description Get all metrics with current values
+// @ID getvalue
+// @Accept  plain
+// @Produce json
+// @Success 200 {string} string "OK"
+// @Failure 405 {string} string "Invalid request type"
+// @Failure 500 {string} string "Internal error"
+// @Router /value/{type}/{name} [get]
 func (srv *Server) AllMetricsHandle(w http.ResponseWriter, r *http.Request) {
 	p := r.URL.Path
 	if !isValidURL(p) {

@@ -3,8 +3,11 @@ package main
 import (
 	"context"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
+	"runtime"
+	rpprof "runtime/pprof"
 	"syscall"
 
 	app "github.com/kvvPro/metric-collector/cmd/server/app"
@@ -51,6 +54,18 @@ func main() {
 	go srv.AsyncSaving(context.Background())
 
 	sigQuit := <-shutdown
+
+	// создаём файл журнала профилирования памяти
+	fmem, err := os.Create(srvFlags.MemProfile)
+	if err != nil {
+		panic(err)
+	}
+	defer fmem.Close()
+	runtime.GC() // получаем статистику по использованию памяти
+	if err := rpprof.WriteHeapProfile(fmem); err != nil {
+		panic(err)
+	}
+
 	app.Sugar.Infoln("Server shutdown by signal: ", sigQuit)
 	app.Sugar.Infoln("Try to save metrics...")
 	err = srv.SaveToFile(context.Background())
@@ -73,6 +88,16 @@ func startServer(ctx context.Context, srv *app.Server, srvFlags *config.ServerFl
 	r.Handle("/value/*", http.HandlerFunc(srv.GetValueHandle))
 	r.Handle("/value/", http.HandlerFunc(srv.GetValueJSONHandle))
 	r.Handle("/", http.HandlerFunc(srv.AllMetricsHandle))
+	r.Handle("/debug/pprof", http.HandlerFunc(pprof.Index))
+	r.Handle("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
+	r.Handle("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
+	r.Handle("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+
+	// Manually add support for paths linked to by index page at /debug/pprof/
+	r.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+	r.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	r.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+	r.Handle("/debug/pprof/block", pprof.Handler("block"))
 
 	app.Sugar.Infoln("before restoring values")
 

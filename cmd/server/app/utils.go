@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	_ "net/http/pprof"
 	"regexp"
 	"strings"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"
 )
 
+// IMetric provides functions to operate with metrics stored in DB
 type IMetric interface {
 	GetName() string
 	GetType() string
