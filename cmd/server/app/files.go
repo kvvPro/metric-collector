@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	_ "net/http/pprof"
 	"os"
 
 	"github.com/kvvPro/metric-collector/internal/metrics"

@@ -10,7 +10,6 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
-	_ "net/http/pprof"
 	"runtime"
 	"time"
 

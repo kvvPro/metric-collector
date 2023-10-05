@@ -3,8 +3,6 @@ package config
 import (
 	"fmt"
 
-	_ "net/http/pprof"
-
 	"github.com/caarlos0/env/v8"
 	"github.com/spf13/pflag"
 )
