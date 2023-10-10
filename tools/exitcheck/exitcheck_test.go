@@ -3,7 +3,7 @@ package exitcheck_test
 import (
 	"testing"
 
-	"github.com/kvvPro/metric-collector/tools/staticlint/exitcheck"
+	"github.com/kvvPro/metric-collector/tools/exitcheck"
 	"golang.org/x/tools/go/analysis/analysistest"
 )
 
