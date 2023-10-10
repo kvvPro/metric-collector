@@ -52,9 +52,9 @@ func (s *PostgresStorage) Ping(ctx context.Context) error {
 	return nil
 }
 
-// Depricated: use UpdateNew
+// Deprecated: use UpdateNew
 func (s *PostgresStorage) Update(ctx context.Context, t string, n string, v string) error {
-	return errors.New("func is depricated")
+	return errors.New("func is deprecated")
 }
 
 func (s *PostgresStorage) UpdateNew(ctx context.Context, mtype string, mname string, delta *int64, value *float64) error {
@@ -319,9 +319,9 @@ func getInitQuery() string {
 	`
 }
 
-// depricated
+// Deprecated: use GetAllMetricsNew
 func (s *PostgresStorage) GetValue(ctx context.Context, t string, n string) (any, error) {
-	return nil, errors.New("func is depricated")
+	return nil, errors.New("func is deprecated")
 }
 
 func (s *PostgresStorage) GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, error) {

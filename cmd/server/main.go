@@ -17,6 +17,10 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	buildVersion, buildDate, buildCommit string = "N/A", "N/A", "N/A"
+)
+
 func main() {
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
@@ -30,6 +34,10 @@ func main() {
 
 	// делаем регистратор SugaredLogger
 	app.Sugar = *logger.Sugar()
+
+	app.Sugar.Infof("\nBuild version: %v", buildVersion)
+	app.Sugar.Infof("\nBuild date: %v", buildDate)
+	app.Sugar.Infof("\nBuild commit: %v", buildCommit)
 
 	app.Sugar.Infoln("before init config")
 
