@@ -18,7 +18,9 @@ import (
 )
 
 var (
-	buildVersion, buildDate, buildCommit string = "N/A", "N/A", "N/A"
+	buildVersion string = "N/A"
+	buildDate    string = "N/A"
+	buildCommit  string = "N/A"
 )
 
 func main() {
