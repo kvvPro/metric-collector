@@ -14,6 +14,7 @@ type ClientFlags struct {
 	HashKey        string `env:"KEY"`
 	RateLimit      int    `env:"RATE_LIMIT"`
 	MemProfile     string `env:"MEM_PROFILE"`
+	CryptoKey      string `env:"CRYPTO_KEY"`
 }
 
 func Initialize() ClientFlags {
@@ -30,6 +31,7 @@ func Initialize() ClientFlags {
 	pflag.IntVarP(&agentFlags.RateLimit, "rateLimit", "l", 2,
 		"Max count of parallel outbound requests to server")
 	pflag.StringVarP(&agentFlags.MemProfile, "mem", "m", "base.pprof", "Path to file where mem stats will be saved")
+	pflag.StringVarP(&agentFlags.CryptoKey, "crypto-key", "c", "/workspaces/metric-collector/cmd/keys/key.pub", "Path to public key RSA to encrypt messages")
 
 	pflag.Parse()
 
@@ -40,6 +42,7 @@ func Initialize() ClientFlags {
 	fmt.Printf("\nKEY=%v", agentFlags.HashKey)
 	fmt.Printf("\nRATE_LIMIT=%v", agentFlags.RateLimit)
 	fmt.Printf("\nMEM_PROFILE=%v", agentFlags.MemProfile)
+	fmt.Printf("\nCRYPTO_KEY=%v", agentFlags.CryptoKey)
 	fmt.Println()
 
 	// try to get vars from env
@@ -54,6 +57,7 @@ func Initialize() ClientFlags {
 	fmt.Printf("\nKEY=%v", agentFlags.HashKey)
 	fmt.Printf("\nRATE_LIMIT=%v", agentFlags.RateLimit)
 	fmt.Printf("\nMEM_PROFILE=%v", agentFlags.MemProfile)
+	fmt.Printf("\nCRYPTO_KEY=%v", agentFlags.CryptoKey)
 
 	return *agentFlags
 }

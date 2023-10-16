@@ -47,12 +47,7 @@ func main() {
 
 	app.Sugar.Infoln("after init config")
 
-	srv, err := app.NewServer(srvFlags.Address,
-		srvFlags.StoreInterval,
-		srvFlags.FileStoragePath,
-		srvFlags.Restore,
-		srvFlags.DBConnection,
-		srvFlags.HashKey)
+	srv, err := app.NewServer(&srvFlags)
 
 	if err != nil {
 		app.Sugar.Fatalw(err.Error(), "event", "create server")
@@ -87,7 +82,8 @@ func main() {
 
 func startServer(ctx context.Context, srv *app.Server, srvFlags *config.ServerFlags) {
 	r := chi.NewMux()
-	r.Use(srv.CheckHashMiddleware,
+	r.Use(srv.DecryptMiddleware,
+		srv.CheckHashMiddleware,
 		app.GzipMiddleware,
 		app.WithLogging)
 	// r.Use(app.WithLogging)

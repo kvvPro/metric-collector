@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/kvvPro/metric-collector/cmd/server/config"
 	"github.com/kvvPro/metric-collector/internal/metrics"
 	"github.com/kvvPro/metric-collector/internal/retry"
 	"github.com/kvvPro/metric-collector/internal/storage"
@@ -38,6 +39,10 @@ type Server struct {
 	HashKey string
 	// True if server would validate hash of all incoming requests
 	CheckHash bool
+	// True if server accepts encrypted messages from agent
+	UseEncryption bool
+	// Path to private key RSA
+	PrivateKeyPath string
 }
 
 const (
@@ -46,19 +51,14 @@ const (
 )
 
 // NewServer creates app instance
-func NewServer(address string,
-	storeInterval int,
-	filePath string,
-	restore bool,
-	dbconn string,
-	hashKey string) (*Server, error) {
+func NewServer(settings *config.ServerFlags) (*Server, error) {
 
 	var t string
 	var st storage.Storage
 
-	if dbconn != "" {
+	if settings.DBConnection != "" {
 		t = DatabaseStorageType
-		newdb, err := postgres.NewPSQLStr(context.Background(), dbconn)
+		newdb, err := postgres.NewPSQLStr(context.Background(), settings.DBConnection)
 		if err != nil {
 			return nil, err
 		}
@@ -75,14 +75,16 @@ func NewServer(address string,
 
 	return &Server{
 		storage:         st,
-		Address:         address,
-		StoreInterval:   storeInterval,
-		FileStoragePath: filePath,
-		Restore:         restore,
-		DBConnection:    dbconn,
+		Address:         settings.Address,
+		StoreInterval:   settings.StoreInterval,
+		FileStoragePath: settings.FileStoragePath,
+		Restore:         settings.Restore,
+		DBConnection:    settings.DBConnection,
 		StorageType:     t,
-		HashKey:         hashKey,
-		CheckHash:       hashKey != "",
+		HashKey:         settings.HashKey,
+		CheckHash:       settings.HashKey != "",
+		PrivateKeyPath:  settings.CryptoKey,
+		UseEncryption:   settings.CryptoKey != "",
 	}, nil
 }
 

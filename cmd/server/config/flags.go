@@ -15,6 +15,7 @@ type ServerFlags struct {
 	DBConnection    string `env:"DATABASE_DSN"`
 	HashKey         string `env:"KEY"`
 	MemProfile      string `env:"MEM_PROFILE"`
+	CryptoKey       string `env:"CRYPTO_KEY"`
 }
 
 func Initialize() ServerFlags {
@@ -32,6 +33,7 @@ func Initialize() ServerFlags {
 	pflag.StringVarP(&srvFlags.HashKey, "hashKey", "k", "",
 		"Hash key to calculate hash sum")
 	pflag.StringVarP(&srvFlags.MemProfile, "mem", "m", "base.pprof", "Path to file where mem stats will be saved")
+	pflag.StringVarP(&srvFlags.CryptoKey, "crypto-key", "c", "/workspaces/metric-collector/cmd/keys/key", "Path to private key RSA to decrypt messages")
 
 	pflag.Parse()
 
@@ -43,6 +45,7 @@ func Initialize() ServerFlags {
 	fmt.Printf("DATABASE_DSN=%v", srvFlags.DBConnection)
 	fmt.Printf("KEY=%v", srvFlags.HashKey)
 	fmt.Printf("MEM_PROFILE=%v", srvFlags.MemProfile)
+	fmt.Printf("CRYPTO_KEY=%v", srvFlags.CryptoKey)
 
 	// try to get vars from env
 	if err := env.Parse(srvFlags); err != nil {
@@ -56,6 +59,7 @@ func Initialize() ServerFlags {
 	fmt.Printf("DATABASE_DSN=%v", srvFlags.DBConnection)
 	fmt.Printf("KEY=%v", srvFlags.HashKey)
 	fmt.Printf("MEM_PROFILE=%v", srvFlags.MemProfile)
+	fmt.Printf("CRYPTO_KEY=%v", srvFlags.CryptoKey)
 
 	return *srvFlags
 }

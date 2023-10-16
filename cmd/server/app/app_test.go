@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/kvvPro/metric-collector/cmd/server/config"
 	"github.com/kvvPro/metric-collector/internal/metrics"
 	st "github.com/kvvPro/metric-collector/internal/storage"
 	"github.com/kvvPro/metric-collector/internal/storage/memstorage"
@@ -56,13 +57,8 @@ func TestServer_AddMetric(t *testing.T) {
 
 func TestNewServer(t *testing.T) {
 	type args struct {
-		store         st.Storage
-		address       string
-		storeInterval int
-		filePath      string
-		restore       bool
-		dbconn        string
-		// storageType   string
+		store    st.Storage
+		settings config.ServerFlags
 	}
 	tests := []struct {
 		name    string
@@ -77,10 +73,13 @@ func TestNewServer(t *testing.T) {
 					Gauges:   make(map[string]float64),
 					Counters: make(map[string]int64),
 				},
-				address:       "localhost:8080",
-				storeInterval: 200,
-				filePath:      "/tmp/val.txt",
-				restore:       true,
+				settings: config.ServerFlags{
+					Address:         "localhost:8080",
+					StoreInterval:   200,
+					FileStoragePath: "/tmp/val.txt",
+					Restore:         true,
+				},
+
 				// dbconn:        "user=postgres password=postgres host=localhost port=5432 dbname=postgres sslmode=disable",
 				// storageType:   "db",
 			},
@@ -101,7 +100,7 @@ func TestNewServer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewServer(tt.args.address, tt.args.storeInterval, tt.args.filePath, tt.args.restore, tt.args.dbconn, "")
+			got, err := NewServer(&tt.args.settings)
 			if err != nil || !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewServer() = %v, want %v", got, tt.want)
 			}

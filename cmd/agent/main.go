@@ -38,8 +38,7 @@ func main() {
 	client.Sugar.Infof("\nBuild commit: %v", buildCommit)
 
 	agentFlags := config.Initialize()
-	agent, err := client.NewClient(agentFlags.PollInterval, agentFlags.ReportInterval,
-		agentFlags.Address, "text/plain", agentFlags.HashKey, agentFlags.RateLimit)
+	agent, err := client.NewClient(&agentFlags)
 	if err != nil {
 		panic(err)
 	}
