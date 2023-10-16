@@ -31,7 +31,7 @@ func Initialize() ClientFlags {
 	pflag.IntVarP(&agentFlags.RateLimit, "rateLimit", "l", 2,
 		"Max count of parallel outbound requests to server")
 	pflag.StringVarP(&agentFlags.MemProfile, "mem", "m", "base.pprof", "Path to file where mem stats will be saved")
-	pflag.StringVarP(&agentFlags.CryptoKey, "crypto-key", "c", "/workspaces/metric-collector/cmd/keys/key.pub", "Path to public key RSA to encrypt messages")
+	pflag.StringVarP(&agentFlags.CryptoKey, "crypto-key", "e", "/workspaces/metric-collector/cmd/keys/key.pub", "Path to public key RSA to encrypt messages")
 
 	pflag.Parse()
 

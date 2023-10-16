@@ -33,7 +33,7 @@ func Initialize() ServerFlags {
 	pflag.StringVarP(&srvFlags.HashKey, "hashKey", "k", "",
 		"Hash key to calculate hash sum")
 	pflag.StringVarP(&srvFlags.MemProfile, "mem", "m", "base.pprof", "Path to file where mem stats will be saved")
-	pflag.StringVarP(&srvFlags.CryptoKey, "crypto-key", "c", "/workspaces/metric-collector/cmd/keys/key", "Path to private key RSA to decrypt messages")
+	pflag.StringVarP(&srvFlags.CryptoKey, "crypto-key", "e", "/workspaces/metric-collector/cmd/keys/key", "Path to private key RSA to decrypt messages")
 
 	pflag.Parse()
 
