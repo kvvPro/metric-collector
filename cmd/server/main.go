@@ -43,11 +43,18 @@ func main() {
 
 	app.Sugar.Infoln("before init config")
 
-	srvFlags := config.Initialize()
+	srvFlags, err := config.ReadConfig()
+	if err != nil {
+		app.Sugar.Fatalw(err.Error(), "event", "read config")
+	}
+	err = config.Initialize(srvFlags)
+	if err != nil {
+		app.Sugar.Fatalw(err.Error(), "event", "read config")
+	}
 
 	app.Sugar.Infoln("after init config")
 
-	srv, err := app.NewServer(&srvFlags)
+	srv, err := app.NewServer(srvFlags)
 
 	if err != nil {
 		app.Sugar.Fatalw(err.Error(), "event", "create server")
@@ -55,7 +62,7 @@ func main() {
 
 	app.Sugar.Infoln("before init config")
 
-	go startServer(context.Background(), srv, &srvFlags)
+	go startServer(context.Background(), srv, srvFlags)
 	go srv.AsyncSaving(context.Background())
 
 	sigQuit := <-shutdown

@@ -37,8 +37,16 @@ func main() {
 	client.Sugar.Infof("\nBuild date: %v", buildDate)
 	client.Sugar.Infof("\nBuild commit: %v", buildCommit)
 
-	agentFlags := config.Initialize()
-	agent, err := client.NewClient(&agentFlags)
+	agentFlags, err := config.ReadConfig()
+	if err != nil {
+		client.Sugar.Fatalw(err.Error(), "event", "read config")
+	}
+	config.Initialize(agentFlags)
+	if err != nil {
+		client.Sugar.Fatalw(err.Error(), "event", "read config")
+	}
+
+	agent, err := client.NewClient(agentFlags)
 	if err != nil {
 		panic(err)
 	}
