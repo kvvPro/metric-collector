@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"net/http"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -242,12 +243,26 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 }
 
 // Run start client - read and push threads
-func (cli *Client) Run(ctx context.Context) {
-	for i := 0; i < cli.maxWorkerCount; i++ {
-		go cli.PushMetricsJSON(ctx)
-	}
-	go cli.ReadSpecificMetrics(ctx)
+func (cli *Client) Run(ctx context.Context, wg *sync.WaitGroup) {
 
-	go cli.ReadMetrics(ctx)
+	for i := 0; i < cli.maxWorkerCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			cli.PushMetricsJSON(ctx)
+		}()
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cli.ReadSpecificMetrics(ctx)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cli.ReadMetrics(ctx)
+	}()
 
 }

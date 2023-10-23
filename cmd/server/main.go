@@ -8,7 +8,9 @@ import (
 	"os/signal"
 	"runtime"
 	rpprof "runtime/pprof"
+	"sync"
 	"syscall"
+	"time"
 
 	app "github.com/kvvPro/metric-collector/cmd/server/app"
 	"github.com/kvvPro/metric-collector/cmd/server/config"
@@ -62,8 +64,15 @@ func main() {
 
 	app.Sugar.Infoln("before init config")
 
-	go startServer(context.Background(), srv, srvFlags)
-	go srv.AsyncSaving(context.Background())
+	ctx := context.Background()
+	wg := &sync.WaitGroup{}
+
+	wg.Add(1)
+	httpSrv := startServer(ctx, wg, srv, srvFlags)
+
+	asyncCtx, cancelSaving := context.WithCancel(ctx)
+	wg.Add(1)
+	go srv.AsyncSaving(asyncCtx, wg)
 
 	sigQuit := <-shutdown
 
@@ -78,16 +87,29 @@ func main() {
 		panic(err)
 	}
 
-	app.Sugar.Infoln("Server shutdown by signal: ", sigQuit)
 	app.Sugar.Infoln("Try to save metrics...")
-	err = srv.SaveToFile(context.Background())
+	err = srv.SaveToFile(ctx)
 	if err != nil {
 		app.Sugar.Infoln("Save to file failed: ", err.Error())
 	}
 	app.Sugar.Infoln("Metrics saved")
+
+	timeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	app.Sugar.Infoln("Попытка мягко завершить сервер")
+	if err := httpSrv.Shutdown(timeout); err != nil {
+		app.Sugar.Errorf("Ошибка при попытке мягко завершить http-сервер: %v", err)
+		// handle err
+		if err = httpSrv.Close(); err != nil {
+			app.Sugar.Errorf("Ошибка при попытке завершить http-сервер: %v", err)
+		}
+	}
+	cancelSaving()
+	wg.Wait()
+	app.Sugar.Infoln("Server shutdown by signal: ", sigQuit)
 }
 
-func startServer(ctx context.Context, srv *app.Server, srvFlags *config.ServerFlags) {
+func startServer(ctx context.Context, wg *sync.WaitGroup, srv *app.Server, srvFlags *config.ServerFlags) *http.Server {
 	r := chi.NewMux()
 	r.Use(srv.DecryptMiddleware,
 		srv.CheckHashMiddleware,
@@ -124,8 +146,18 @@ func startServer(ctx context.Context, srv *app.Server, srvFlags *config.ServerFl
 		"srvFlags", srvFlags,
 	)
 
-	if err := http.ListenAndServe(srv.Address, r); err != nil {
-		// записываем в лог ошибку, если сервер не запустился
-		app.Sugar.Fatalw(err.Error(), "event", "start server")
+	httpSrv := &http.Server{
+		Addr:    srv.Address,
+		Handler: r,
 	}
+	go func() {
+		defer wg.Done()
+
+		if err := httpSrv.ListenAndServe(); err != http.ErrServerClosed {
+			// записываем в лог ошибку, если сервер не запустился
+			app.Sugar.Fatalw(err.Error(), "event", "start server")
+		}
+	}()
+
+	return httpSrv
 }

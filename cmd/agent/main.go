@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"runtime"
 	rpprof "runtime/pprof"
+	"sync"
 	"syscall"
 
 	"github.com/kvvPro/metric-collector/cmd/agent/client"
@@ -56,10 +57,12 @@ func main() {
 		"addr", agentFlags.Address,
 	)
 
-	agent.Run(context.Background())
+	ctx := context.Background()
+	wg := &sync.WaitGroup{}
+	asyncCtx, cancelAgent := context.WithCancel(ctx)
+	agent.Run(asyncCtx, wg)
 
 	sigQuit := <-shutdown
-	client.Sugar.Infoln("Server shutdown by signal: ", sigQuit)
 
 	// создаём файл журнала профилирования памяти
 	fmem, err := os.Create(agentFlags.MemProfile)
@@ -71,4 +74,7 @@ func main() {
 	if err := rpprof.WriteHeapProfile(fmem); err != nil {
 		panic(err)
 	}
+	cancelAgent()
+	wg.Wait()
+	client.Sugar.Infoln("Server shutdown by signal: ", sigQuit)
 }

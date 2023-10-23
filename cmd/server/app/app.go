@@ -4,6 +4,7 @@ package app
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/kvvPro/metric-collector/cmd/server/config"
@@ -245,12 +246,18 @@ func (srv *Server) GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, err
 }
 
 // AsyncSaving backups database to file
-func (srv *Server) AsyncSaving(ctx context.Context) {
+func (srv *Server) AsyncSaving(ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
 	// run if only StoreInterval > 0, if StoreInterval = 0 => sync writing after each update
 	// and FileStoragePath != ""
 	if srv.StoreInterval > 0 && srv.FileStoragePath != "" {
 		for {
-			time.Sleep(time.Duration(srv.StoreInterval) * time.Second)
+			select {
+			case <-time.After(time.Duration(srv.StoreInterval) * time.Second):
+			case <-ctx.Done():
+				Sugar.Infoln("остановка асинхронного сохранения")
+				return
+			}
 
 			err := srv.SaveToFile(ctx)
 			if err != nil {
