@@ -1,0 +1,10 @@
+{
+    "address": "localhost:8080", 
+    "report_interval": 10, 
+    "poll_interval": 2, 
+    "hash_key": "",
+    "rate_limit": 2,
+    "mem_profile": "base.pprof",
+    "crypto_key": "/workspaces/metric-collector/cmd/keys/key.pub",
+    "config": "/workspaces/metric-collector/cmd/agent/config/config.json"
+} 

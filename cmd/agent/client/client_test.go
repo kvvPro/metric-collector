@@ -4,43 +4,30 @@ import (
 	"context"
 	"testing"
 
+	"github.com/kvvPro/metric-collector/cmd/agent/config"
 	"github.com/kvvPro/metric-collector/internal/metrics"
 )
 
 func TestNewClient(t *testing.T) {
-	type args struct {
-		pollInterval   int
-		reportInterval int
-		address        string
-		contentType    string
-		needToHash     bool
-		hashKey        string
-		//queue          chan []metrics.Metric
-		maxWorkerCount int
-	}
 	tests := []struct {
 		name    string
-		args    args
+		args    config.ClientFlags
 		want    *Client
 		wantErr bool
 	}{
 		{
 			name: "1",
-			args: args{
-				pollInterval:   2,
-				reportInterval: 10,
-				address:        "http://localhost:8080",
-				contentType:    "text/plain",
-				needToHash:     true,
-				hashKey:        "opa",
-				//queue:          nil,
-				maxWorkerCount: 2,
+			args: config.ClientFlags{
+				PollInterval:   2,
+				ReportInterval: 10,
+				Address:        "http://localhost:8080",
+				HashKey:        "opa",
+				RateLimit:      2,
 			},
 			want: &Client{
 				pollInterval:   2,
 				reportInterval: 10,
 				Address:        "http://localhost:8080",
-				contentType:    "text/plain",
 				needToHash:     true,
 				hashKey:        "opa",
 				// queue:          nil,
@@ -50,24 +37,19 @@ func TestNewClient(t *testing.T) {
 		},
 		{
 			name: "1",
-			args: args{
-				pollInterval:   4,
-				reportInterval: 12,
-				address:        "http://localhost:8080",
-				contentType:    "opa",
-				needToHash:     true,
-				hashKey:        "param",
-				//queue:          nil,
-				maxWorkerCount: 4,
+			args: config.ClientFlags{
+				PollInterval:   4,
+				ReportInterval: 12,
+				Address:        "http://localhost:8080",
+				HashKey:        "param",
+				RateLimit:      4,
 			},
 			want: &Client{
 				pollInterval:   4,
 				reportInterval: 12,
 				Address:        "http://localhost:8080",
-				contentType:    "opa",
 				needToHash:     true,
 				hashKey:        "param",
-				//queue:          nil,
 				maxWorkerCount: 4,
 			},
 			wantErr: false,
@@ -75,8 +57,7 @@ func TestNewClient(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewClient(tt.args.pollInterval, tt.args.reportInterval, tt.args.address,
-				tt.args.contentType, tt.args.hashKey, tt.args.maxWorkerCount)
+			_, err := NewClient(&tt.args)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -97,7 +78,6 @@ func TestClient_ReadMetrics(t *testing.T) {
 		pollInterval   int
 		reportInterval int
 		address        string
-		contentType    string
 	}
 	tests := []struct {
 		name   string
@@ -112,7 +92,6 @@ func TestClient_ReadMetrics(t *testing.T) {
 				pollInterval:   tt.fields.pollInterval,
 				reportInterval: tt.fields.reportInterval,
 				Address:        tt.fields.address,
-				contentType:    tt.fields.contentType,
 			}
 			cli.ReadMetrics(context.Background())
 		})
@@ -125,7 +104,6 @@ func TestClient_PushMetrics(t *testing.T) {
 		pollInterval   int
 		reportInterval int
 		address        string
-		contentType    string
 	}
 	tests := []struct {
 		name   string
@@ -140,7 +118,6 @@ func TestClient_PushMetrics(t *testing.T) {
 				pollInterval:   tt.fields.pollInterval,
 				reportInterval: tt.fields.reportInterval,
 				Address:        tt.fields.address,
-				contentType:    tt.fields.contentType,
 			}
 			cli.PushMetricsJSON(context.Background())
 		})
@@ -153,7 +130,6 @@ func TestClient_ReadSpecificMetrics(t *testing.T) {
 		pollInterval   int
 		reportInterval int
 		Address        string
-		contentType    string
 		needToHash     bool
 		hashKey        string
 		queue          chan []metrics.Metric
@@ -176,7 +152,6 @@ func TestClient_ReadSpecificMetrics(t *testing.T) {
 				pollInterval:   tt.fields.pollInterval,
 				reportInterval: tt.fields.reportInterval,
 				Address:        tt.fields.Address,
-				contentType:    tt.fields.contentType,
 				needToHash:     tt.fields.needToHash,
 				hashKey:        tt.fields.hashKey,
 				queue:          tt.fields.queue,

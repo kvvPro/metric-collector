@@ -1,0 +1,11 @@
+{
+    "address": "localhost:8080", 
+    "restore": true, 
+    "store_interval": 5, 
+    "store_file": "/tmp/metrics-db.json", 
+    "database_dsn": "",
+    "hash_key": "",
+    "mem_profile": "base.pprof",
+    "crypto_key": "/workspaces/metric-collector/cmd/keys/key",
+    "config": "/workspaces/metric-collector/cmd/server/config/config.json"
+} 

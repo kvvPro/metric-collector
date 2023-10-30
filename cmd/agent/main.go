@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"runtime"
 	rpprof "runtime/pprof"
+	"sync"
 	"syscall"
 
 	"github.com/kvvPro/metric-collector/cmd/agent/client"
@@ -15,7 +16,9 @@ import (
 )
 
 var (
-	buildVersion, buildDate, buildCommit string = "N/A", "N/A", "N/A"
+	buildVersion string = "N/A"
+	buildDate    string = "N/A"
+	buildCommit  string = "N/A"
 )
 
 func main() {
@@ -35,9 +38,16 @@ func main() {
 	client.Sugar.Infof("\nBuild date: %v", buildDate)
 	client.Sugar.Infof("\nBuild commit: %v", buildCommit)
 
-	agentFlags := config.Initialize()
-	agent, err := client.NewClient(agentFlags.PollInterval, agentFlags.ReportInterval,
-		agentFlags.Address, "text/plain", agentFlags.HashKey, agentFlags.RateLimit)
+	agentFlags, err := config.ReadConfig()
+	if err != nil {
+		client.Sugar.Fatalw(err.Error(), "event", "read config")
+	}
+	config.Initialize(agentFlags)
+	if err != nil {
+		client.Sugar.Fatalw(err.Error(), "event", "read config")
+	}
+
+	agent, err := client.NewClient(agentFlags)
 	if err != nil {
 		panic(err)
 	}
@@ -47,10 +57,12 @@ func main() {
 		"addr", agentFlags.Address,
 	)
 
-	agent.Run(context.Background())
+	ctx := context.Background()
+	wg := &sync.WaitGroup{}
+	asyncCtx, cancelAgent := context.WithCancel(ctx)
+	agent.Run(asyncCtx, wg)
 
 	sigQuit := <-shutdown
-	client.Sugar.Infoln("Server shutdown by signal: ", sigQuit)
 
 	// создаём файл журнала профилирования памяти
 	fmem, err := os.Create(agentFlags.MemProfile)
@@ -62,4 +74,7 @@ func main() {
 	if err := rpprof.WriteHeapProfile(fmem); err != nil {
 		panic(err)
 	}
+	cancelAgent()
+	wg.Wait()
+	client.Sugar.Infoln("Server shutdown by signal: ", sigQuit)
 }

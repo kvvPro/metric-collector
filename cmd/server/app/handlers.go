@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kvvPro/metric-collector/internal/encrypt"
 	"github.com/kvvPro/metric-collector/internal/hash"
 	mc "github.com/kvvPro/metric-collector/internal/metrics"
 	"go.uber.org/zap"
@@ -92,6 +93,36 @@ func WithLogging(h http.Handler) http.Handler {
 		)
 	}
 	return http.HandlerFunc(logFn)
+}
+
+func (srv *Server) DecryptMiddleware(h http.Handler) http.Handler {
+	decryptFunc := func(w http.ResponseWriter, r *http.Request) {
+		ow := w
+
+		if srv.UseEncryption {
+			// decrypt request body
+			data, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			// decrypt only non-empty data
+			if len(data) > 0 {
+				decryptBody, err := encrypt.Decrypt(srv.PrivateKeyPath, string(data))
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return
+				}
+				// возвращаем тело запроса
+				r.Body = io.NopCloser(bytes.NewReader([]byte(decryptBody)))
+			}
+		}
+
+		// передаём управление хендлеру
+		h.ServeHTTP(ow, r)
+	}
+	return http.HandlerFunc(decryptFunc)
 }
 
 func GzipMiddleware(h http.Handler) http.Handler {

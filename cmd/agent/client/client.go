@@ -11,11 +11,14 @@ import (
 	"math/rand"
 	"net/http"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 
+	"github.com/kvvPro/metric-collector/cmd/agent/config"
+	"github.com/kvvPro/metric-collector/internal/encrypt"
 	"github.com/kvvPro/metric-collector/internal/hash"
 	"github.com/kvvPro/metric-collector/internal/metrics"
 	"github.com/kvvPro/metric-collector/internal/retry"
@@ -50,8 +53,6 @@ type Client struct {
 	reportInterval int
 	// server address
 	Address string
-	// type of content
-	contentType string
 	// true if client will encrypt request body
 	needToHash bool
 	// key to encrypt request
@@ -60,20 +61,25 @@ type Client struct {
 	queue chan []metrics.Metric
 	// max count of parallel workers to push metrics to server
 	maxWorkerCount int
+	// True if agent encrypts all messages
+	needToEncrypt bool
+	// Path to public key RSA
+	publicKey string
 }
 
 // NewClient creates instance of client
-func NewClient(pollInterval int, reportInterval int, address string, contentType string, hashKey string, rateLimit int) (*Client, error) {
+func NewClient(settings *config.ClientFlags) (*Client, error) {
 	return &Client{
 		Metrics:        Metrics{},
-		pollInterval:   pollInterval,
-		reportInterval: reportInterval,
-		Address:        address,
-		contentType:    contentType,
-		hashKey:        hashKey,
-		needToHash:     hashKey != "",
-		queue:          make(chan []metrics.Metric, rateLimit),
-		maxWorkerCount: rateLimit,
+		pollInterval:   settings.PollInterval,
+		reportInterval: settings.ReportInterval,
+		Address:        settings.Address,
+		hashKey:        settings.HashKey,
+		needToHash:     settings.HashKey != "",
+		queue:          make(chan []metrics.Metric, settings.RateLimit),
+		maxWorkerCount: settings.RateLimit,
+		publicKey:      settings.CryptoKey,
+		needToEncrypt:  settings.CryptoKey != "",
 	}, nil
 }
 
@@ -173,12 +179,27 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 	url := "http://" + cli.Address + "/updates/"
 
 	bodyBuffer := new(bytes.Buffer)
+	defer bodyBuffer.Reset()
 	gzb := gzip.NewWriter(bodyBuffer)
 	json.NewEncoder(gzb).Encode(allMetrics)
 	err := gzb.Close()
 	if err != nil {
 		Sugar.Infoln("Error encode request body: ", err.Error())
 		return err
+	}
+
+	if cli.needToEncrypt {
+		encryptedBody, err := encrypt.Encrypt(cli.publicKey, bodyBuffer.String())
+		if err != nil {
+			Sugar.Infoln("Error encode request body: ", err.Error())
+			return err
+		}
+		bodyBuffer = new(bytes.Buffer)
+		_, err = bodyBuffer.WriteString(encryptedBody)
+		if err != nil {
+			Sugar.Infoln("Error decrypt request body: ", err.Error())
+			return err
+		}
 	}
 
 	request, err := http.NewRequest(http.MethodPost, url, bodyBuffer)
@@ -222,12 +243,26 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 }
 
 // Run start client - read and push threads
-func (cli *Client) Run(ctx context.Context) {
-	for i := 0; i < cli.maxWorkerCount; i++ {
-		go cli.PushMetricsJSON(ctx)
-	}
-	go cli.ReadSpecificMetrics(ctx)
+func (cli *Client) Run(ctx context.Context, wg *sync.WaitGroup) {
 
-	go cli.ReadMetrics(ctx)
+	for i := 0; i < cli.maxWorkerCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			cli.PushMetricsJSON(ctx)
+		}()
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cli.ReadSpecificMetrics(ctx)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cli.ReadMetrics(ctx)
+	}()
 
 }
