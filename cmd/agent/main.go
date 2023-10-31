@@ -5,9 +5,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"runtime"
-	rpprof "runtime/pprof"
-	"sync"
 	"syscall"
 
 	"github.com/kvvPro/metric-collector/cmd/agent/client"
@@ -34,6 +31,28 @@ func main() {
 
 	// делаем регистратор SugaredLogger
 	client.Sugar = *logger.Sugar()
+
+	agentFlags := initConfigs()
+	agent, err := client.NewClient(agentFlags)
+	if err != nil {
+		client.Sugar.Fatalw(err.Error())
+	}
+
+	client.Sugar.Infow(
+		"Starting client",
+		"addr", agentFlags.Address,
+	)
+
+	ctx := context.Background()
+	agent.Run(ctx)
+
+	sigQuit := <-shutdown
+
+	agent.Stop()
+	client.Sugar.Infoln("Server shutdown by signal: ", sigQuit)
+}
+
+func initConfigs() *config.ClientFlags {
 	client.Sugar.Infof("\nBuild version: %v", buildVersion)
 	client.Sugar.Infof("\nBuild date: %v", buildDate)
 	client.Sugar.Infof("\nBuild commit: %v", buildCommit)
@@ -46,35 +65,5 @@ func main() {
 	if err != nil {
 		client.Sugar.Fatalw(err.Error(), "event", "read config")
 	}
-
-	agent, err := client.NewClient(agentFlags)
-	if err != nil {
-		panic(err)
-	}
-
-	client.Sugar.Infow(
-		"Starting client",
-		"addr", agentFlags.Address,
-	)
-
-	ctx := context.Background()
-	wg := &sync.WaitGroup{}
-	asyncCtx, cancelAgent := context.WithCancel(ctx)
-	agent.Run(asyncCtx, wg)
-
-	sigQuit := <-shutdown
-
-	// создаём файл журнала профилирования памяти
-	fmem, err := os.Create(agentFlags.MemProfile)
-	if err != nil {
-		panic(err)
-	}
-	defer fmem.Close()
-	runtime.GC() // получаем статистику по использованию памяти
-	if err := rpprof.WriteHeapProfile(fmem); err != nil {
-		panic(err)
-	}
-	cancelAgent()
-	wg.Wait()
-	client.Sugar.Infoln("Server shutdown by signal: ", sigQuit)
+	return agentFlags
 }

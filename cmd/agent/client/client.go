@@ -10,7 +10,9 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"os"
 	"runtime"
+	rpprof "runtime/pprof"
 	"sync"
 	"time"
 
@@ -21,6 +23,7 @@ import (
 	"github.com/kvvPro/metric-collector/internal/encrypt"
 	"github.com/kvvPro/metric-collector/internal/hash"
 	"github.com/kvvPro/metric-collector/internal/metrics"
+	ip "github.com/kvvPro/metric-collector/internal/net"
 	"github.com/kvvPro/metric-collector/internal/retry"
 
 	"go.uber.org/zap"
@@ -65,6 +68,12 @@ type Client struct {
 	needToEncrypt bool
 	// Path to public key RSA
 	publicKey string
+	// Path to file where mem stats will be saved
+	MemProfile string
+	// wait group for sync
+	wg *sync.WaitGroup
+	// func to cancel context
+	cancelFunc context.CancelFunc
 }
 
 // NewClient creates instance of client
@@ -80,6 +89,7 @@ func NewClient(settings *config.ClientFlags) (*Client, error) {
 		maxWorkerCount: settings.RateLimit,
 		publicKey:      settings.CryptoKey,
 		needToEncrypt:  settings.CryptoKey != "",
+		MemProfile:     settings.MemProfile,
 	}, nil
 }
 
@@ -95,7 +105,7 @@ func (cli *Client) ReadMetrics(ctx context.Context) {
 		// send metrics to channel
 		mslice := DeepFieldsNew(cli.Metrics)
 
-		fmt.Println("Read metrics - 1")
+		Sugar.Infoln("Read metrics - 1")
 		cli.queue <- mslice
 
 		select {
@@ -130,7 +140,7 @@ func (cli *Client) ReadSpecificMetrics(ctx context.Context) {
 			fields = append(fields, *newCPU)
 		}
 
-		//fmt.Println("Read metrics - 1")
+		Sugar.Infoln("Read specific metrics - 1")
 
 		cli.queue <- fields
 
@@ -152,6 +162,8 @@ func (cli *Client) PushMetricsJSON(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		}
+
+		Sugar.Infoln("Push metrics - 1")
 
 		m, opened := <-cli.queue
 		if !opened {
@@ -179,7 +191,6 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 	url := "http://" + cli.Address + "/updates/"
 
 	bodyBuffer := new(bytes.Buffer)
-	defer bodyBuffer.Reset()
 	gzb := gzip.NewWriter(bodyBuffer)
 	json.NewEncoder(gzb).Encode(allMetrics)
 	err := gzb.Close()
@@ -197,7 +208,7 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 		bodyBuffer = new(bytes.Buffer)
 		_, err = bodyBuffer.WriteString(encryptedBody)
 		if err != nil {
-			Sugar.Infoln("Error decrypt request body: ", err.Error())
+			Sugar.Infoln("Error to write request body: ", err.Error())
 			return err
 		}
 	}
@@ -216,6 +227,9 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 		hash := hash.GetHashSHA256(bodyBuffer.String(), cli.hashKey)
 		request.Header.Set("HashSHA256", base64.URLEncoding.EncodeToString(hash))
 	}
+	localIP := ip.GetOutboundIP(cli.Address)
+	request.Header.Set("X-Real-IP", localIP.String())
+
 	response, err := client.Do(request)
 	if err != nil {
 		Sugar.Infoln("Error response: ", err.Error())
@@ -243,26 +257,43 @@ func (cli *Client) updateBatchMetricsJSON(allMetrics []metrics.Metric) error {
 }
 
 // Run start client - read and push threads
-func (cli *Client) Run(ctx context.Context, wg *sync.WaitGroup) {
-
+func (cli *Client) Run(ctx context.Context) {
+	asyncCtx, cancelAgent := context.WithCancel(ctx)
+	cli.cancelFunc = cancelAgent
+	cli.wg = &sync.WaitGroup{}
 	for i := 0; i < cli.maxWorkerCount; i++ {
-		wg.Add(1)
+		cli.wg.Add(1)
 		go func() {
-			defer wg.Done()
-			cli.PushMetricsJSON(ctx)
+			defer cli.wg.Done()
+			cli.PushMetricsJSON(asyncCtx)
 		}()
 	}
 
-	wg.Add(1)
+	cli.wg.Add(1)
 	go func() {
-		defer wg.Done()
-		cli.ReadSpecificMetrics(ctx)
+		defer cli.wg.Done()
+		cli.ReadSpecificMetrics(asyncCtx)
 	}()
 
-	wg.Add(1)
+	cli.wg.Add(1)
 	go func() {
-		defer wg.Done()
-		cli.ReadMetrics(ctx)
+		defer cli.wg.Done()
+		cli.ReadMetrics(asyncCtx)
 	}()
+}
 
+func (cli *Client) Stop() {
+	// создаём файл журнала профилирования памяти
+	fmem, err := os.Create(cli.MemProfile)
+	if err != nil {
+		Sugar.Fatalw(err.Error())
+	}
+	defer fmem.Close()
+	runtime.GC() // получаем статистику по использованию памяти
+	if err := rpprof.WriteHeapProfile(fmem); err != nil {
+		Sugar.Fatalw(err.Error())
+	}
+
+	cli.cancelFunc()
+	cli.wg.Wait()
 }

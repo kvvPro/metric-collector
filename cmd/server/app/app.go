@@ -4,9 +4,15 @@ package app
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/pprof"
+	"os"
+	"runtime"
+	rpprof "runtime/pprof"
 	"sync"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/kvvPro/metric-collector/cmd/server/config"
 	"github.com/kvvPro/metric-collector/internal/metrics"
 	"github.com/kvvPro/metric-collector/internal/retry"
@@ -44,6 +50,16 @@ type Server struct {
 	UseEncryption bool
 	// Path to private key RSA
 	PrivateKeyPath string
+	// Trusted subnet to check clients ip addresses
+	TrustedSubnet string
+	// http server
+	HttpServer *http.Server
+	// Path to file where mem stats will be saved
+	MemProfile string
+	// wait group for async saving
+	wg *sync.WaitGroup
+	// func to cancel ctx in asunc saving
+	cancelSaving context.CancelFunc
 }
 
 const (
@@ -86,7 +102,96 @@ func NewServer(settings *config.ServerFlags) (*Server, error) {
 		CheckHash:       settings.HashKey != "",
 		PrivateKeyPath:  settings.CryptoKey,
 		UseEncryption:   settings.CryptoKey != "",
+		MemProfile:      settings.MemProfile,
+		TrustedSubnet:   settings.TrustedSubnet,
 	}, nil
+}
+
+func (srv *Server) StartServer(ctx context.Context, srvFlags *config.ServerFlags) {
+	r := chi.NewMux()
+	r.Use(srv.ValidateIP,
+		srv.DecryptMiddleware,
+		srv.CheckHashMiddleware,
+		GzipMiddleware,
+		WithLogging)
+	// r.Use(app.WithLogging)
+	r.Handle("/ping", http.HandlerFunc(srv.PingHandle))
+	r.Handle("/updates/", http.HandlerFunc(srv.UpdateBatchJSONHandle))
+	r.Handle("/update/", http.HandlerFunc(srv.UpdateJSONHandle))
+	r.Handle("/update/*", http.HandlerFunc(srv.UpdateHandle))
+	r.Handle("/value/*", http.HandlerFunc(srv.GetValueHandle))
+	r.Handle("/value/", http.HandlerFunc(srv.GetValueJSONHandle))
+	r.Handle("/", http.HandlerFunc(srv.AllMetricsHandle))
+	r.Handle("/debug/pprof", http.HandlerFunc(pprof.Index))
+	r.Handle("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
+	r.Handle("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
+	r.Handle("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+
+	// Manually add support for paths linked to by index page at /debug/pprof/
+	r.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+	r.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	r.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+	r.Handle("/debug/pprof/block", pprof.Handler("block"))
+
+	Sugar.Infoln("before restoring values")
+
+	srv.RestoreValues(ctx)
+
+	Sugar.Infoln("after restoring values")
+
+	// записываем в лог, что сервер запускается
+	Sugar.Infow(
+		"Starting server",
+		"srvFlags", srvFlags,
+	)
+
+	srv.HttpServer = &http.Server{
+		Addr:    srv.Address,
+		Handler: r,
+	}
+	go func() {
+		if err := srv.HttpServer.ListenAndServe(); err != http.ErrServerClosed {
+			// записываем в лог ошибку, если сервер не запустился
+			Sugar.Fatalw(err.Error(), "event", "start server")
+		}
+	}()
+
+	asyncCtx, cancel := context.WithCancel(ctx)
+	srv.cancelSaving = cancel
+	srv.AsyncSaving(asyncCtx)
+}
+
+func (srv *Server) StopServer(ctx context.Context) {
+	// создаём файл журнала профилирования памяти
+	fmem, err := os.Create(srv.MemProfile)
+	if err != nil {
+		panic(err)
+	}
+	defer fmem.Close()
+	runtime.GC() // получаем статистику по использованию памяти
+	if err := rpprof.WriteHeapProfile(fmem); err != nil {
+		Sugar.Fatalw("Error to make heap profile:", err.Error())
+	}
+
+	Sugar.Infoln("Try to save metrics...")
+	err = srv.SaveToFile(ctx)
+	if err != nil {
+		Sugar.Infoln("Save to file failed: ", err.Error())
+	}
+	Sugar.Infoln("Metrics saved")
+
+	timeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	Sugar.Infoln("Попытка мягко завершить сервер")
+	if err := srv.HttpServer.Shutdown(timeout); err != nil {
+		Sugar.Errorf("Ошибка при попытке мягко завершить http-сервер: %v", err)
+		// handle err
+		if err = srv.HttpServer.Close(); err != nil {
+			Sugar.Errorf("Ошибка при попытке завершить http-сервер: %v", err)
+		}
+	}
+
+	srv.StopAsyncSaving()
 }
 
 // Ping tests connection to db
@@ -246,25 +351,36 @@ func (srv *Server) GetAllMetricsNew(ctx context.Context) ([]*metrics.Metric, err
 }
 
 // AsyncSaving backups database to file
-func (srv *Server) AsyncSaving(ctx context.Context, wg *sync.WaitGroup) {
-	defer wg.Done()
-	// run if only StoreInterval > 0, if StoreInterval = 0 => sync writing after each update
-	// and FileStoragePath != ""
-	if srv.StoreInterval > 0 && srv.FileStoragePath != "" {
-		for {
-			select {
-			case <-time.After(time.Duration(srv.StoreInterval) * time.Second):
-			case <-ctx.Done():
-				Sugar.Infoln("остановка асинхронного сохранения")
-				return
-			}
+func (srv *Server) AsyncSaving(ctx context.Context) {
+	srv.wg = &sync.WaitGroup{}
 
-			err := srv.SaveToFile(ctx)
-			if err != nil {
-				Sugar.Infoln("Save to file failed: ", err.Error())
+	srv.wg.Add(1)
+	go func() {
+		defer srv.wg.Done()
+		// run if only StoreInterval > 0, if StoreInterval = 0 => sync writing after each update
+		// and FileStoragePath != ""
+		if srv.StoreInterval > 0 && srv.FileStoragePath != "" {
+			for {
+				select {
+				case <-time.After(time.Duration(srv.StoreInterval) * time.Second):
+				case <-ctx.Done():
+					Sugar.Infoln("остановка асинхронного сохранения")
+					return
+				}
+
+				err := srv.SaveToFile(ctx)
+				if err != nil {
+					Sugar.Infoln("Save to file failed: ", err.Error())
+				}
 			}
 		}
-	}
+	}()
+
+}
+
+func (srv *Server) StopAsyncSaving() {
+	srv.cancelSaving()
+	srv.wg.Wait()
 }
 
 // RestoreValues restore metrics from file
