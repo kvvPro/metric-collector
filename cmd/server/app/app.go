@@ -53,7 +53,7 @@ type Server struct {
 	// Trusted subnet to check clients ip addresses
 	TrustedSubnet string
 	// http server
-	HttpServer *http.Server
+	HTTPServer *http.Server
 	// Path to file where mem stats will be saved
 	MemProfile string
 	// wait group for async saving
@@ -145,12 +145,12 @@ func (srv *Server) StartServer(ctx context.Context, srvFlags *config.ServerFlags
 		"srvFlags", srvFlags,
 	)
 
-	srv.HttpServer = &http.Server{
+	srv.HTTPServer = &http.Server{
 		Addr:    srv.Address,
 		Handler: r,
 	}
 	go func() {
-		if err := srv.HttpServer.ListenAndServe(); err != http.ErrServerClosed {
+		if err := srv.HTTPServer.ListenAndServe(); err != http.ErrServerClosed {
 			// записываем в лог ошибку, если сервер не запустился
 			Sugar.Fatalw(err.Error(), "event", "start server")
 		}
@@ -183,10 +183,10 @@ func (srv *Server) StopServer(ctx context.Context) {
 	timeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	Sugar.Infoln("Попытка мягко завершить сервер")
-	if err := srv.HttpServer.Shutdown(timeout); err != nil {
+	if err := srv.HTTPServer.Shutdown(timeout); err != nil {
 		Sugar.Errorf("Ошибка при попытке мягко завершить http-сервер: %v", err)
 		// handle err
-		if err = srv.HttpServer.Close(); err != nil {
+		if err = srv.HTTPServer.Close(); err != nil {
 			Sugar.Errorf("Ошибка при попытке завершить http-сервер: %v", err)
 		}
 	}
