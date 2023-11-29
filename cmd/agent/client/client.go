@@ -70,6 +70,8 @@ type Client struct {
 	publicKey string
 	// Path to file where mem stats will be saved
 	MemProfile string
+	// Exchange mode
+	ExchangeMode string
 	// wait group for sync
 	wg *sync.WaitGroup
 	// func to cancel context
@@ -90,6 +92,7 @@ func NewClient(settings *config.ClientFlags) (*Client, error) {
 		publicKey:      settings.CryptoKey,
 		needToEncrypt:  settings.CryptoKey != "",
 		MemProfile:     settings.MemProfile,
+		ExchangeMode:   settings.ExchangeMode,
 	}, nil
 }
 
@@ -173,7 +176,13 @@ func (cli *Client) PushMetricsJSON(ctx context.Context) {
 
 		err := retry.Do(
 			func() error {
-				return cli.updateBatchMetricsJSON(m)
+				if cli.ExchangeMode == "http" {
+					return cli.updateBatchMetricsJSON(m)
+				} else if cli.ExchangeMode == "grpc" {
+					return cli.updateMetrics(ctx, m)
+				} else {
+					return fmt.Errorf("uknown exchange type - %v", cli.ExchangeMode)
+				}
 			},
 			retry.Attempts(3),
 			retry.InitDelay(1000*time.Millisecond),

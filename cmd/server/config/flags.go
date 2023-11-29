@@ -20,6 +20,7 @@ type ServerFlags struct {
 	MemProfile      string `env:"MEM_PROFILE" json:"mem_profile"`
 	CryptoKey       string `env:"CRYPTO_KEY" json:"crypto_key"`
 	TrustedSubnet   string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
+	ExchangeMode    string `env:"EXCHANGE_MODE" json:"exchange_mode"`
 	Config          string `env:"CONFIG" json:"config"`
 }
 
@@ -39,6 +40,7 @@ func Initialize(flags *ServerFlags) error {
 	pflag.StringVarP(&flags.MemProfile, "mem", "m", "base.pprof", "Path to file where mem stats will be saved")
 	pflag.StringVarP(&flags.CryptoKey, "crypto-key", "e", "/workspaces/metric-collector/cmd/keys/key", "Path to private key RSA to decrypt messages")
 	pflag.StringVarP(&flags.TrustedSubnet, "trusted-subnet", "t", "", "Trusted subnet for clients")
+	pflag.StringVarP(&flags.ExchangeMode, "exchange-mode", "x", "http", "Exchange mode - http or grpc")
 	// pflag.StringVarP(&flags.Config, "config", "c", "/workspaces/metric-collector/cmd/server/config/config.json", "Path to server config file")
 
 	pflag.Parse()
@@ -53,6 +55,7 @@ func Initialize(flags *ServerFlags) error {
 	fmt.Printf("MEM_PROFILE=%v", flags.MemProfile)
 	fmt.Printf("CRYPTO_KEY=%v", flags.CryptoKey)
 	fmt.Printf("TRUSTED_SUBNET=%v", flags.TrustedSubnet)
+	fmt.Printf("\nEXCHANGE_MODE=%v", flags.ExchangeMode)
 	fmt.Printf("CONFIG=%v", flags.Config)
 
 	// try to get vars from env
@@ -69,6 +72,7 @@ func Initialize(flags *ServerFlags) error {
 	fmt.Printf("MEM_PROFILE=%v", flags.MemProfile)
 	fmt.Printf("CRYPTO_KEY=%v", flags.CryptoKey)
 	fmt.Printf("TRUSTED_SUBNET=%v", flags.TrustedSubnet)
+	fmt.Printf("\nEXCHANGE_MODE=%v", flags.ExchangeMode)
 	fmt.Printf("CONFIG=%v", flags.Config)
 
 	return nil

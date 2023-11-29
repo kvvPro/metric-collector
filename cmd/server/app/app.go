@@ -4,6 +4,9 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
+	"log"
+	"net"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -11,6 +14,8 @@ import (
 	rpprof "runtime/pprof"
 	"sync"
 	"time"
+
+	"google.golang.org/grpc"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/kvvPro/metric-collector/cmd/server/config"
@@ -56,6 +61,8 @@ type Server struct {
 	HTTPServer *http.Server
 	// Path to file where mem stats will be saved
 	MemProfile string
+	// Exchange mode
+	ExchangeMode string
 	// wait group for async saving
 	wg *sync.WaitGroup
 	// func to cancel ctx in asunc saving
@@ -104,6 +111,7 @@ func NewServer(settings *config.ServerFlags) (*Server, error) {
 		UseEncryption:   settings.CryptoKey != "",
 		MemProfile:      settings.MemProfile,
 		TrustedSubnet:   settings.TrustedSubnet,
+		ExchangeMode:    settings.ExchangeMode,
 	}, nil
 }
 
@@ -192,6 +200,24 @@ func (srv *Server) StopServer(ctx context.Context) {
 	}
 
 	srv.StopAsyncSaving()
+}
+
+func (srv *Server) StartGRPCServer(ctx context.Context) {
+	// определяем порт для сервера
+	listen, err := net.Listen("tcp", ":3200")
+	if err != nil {
+		Sugar.Fatal(err)
+	}
+	// создаём gRPC-сервер без зарегистрированной службы
+	s := grpc.NewServer()
+	// регистрируем сервис
+	//pb.RegisterUsersServer(s, &UsersServer{})
+
+	fmt.Println("Сервер gRPC начал работу")
+	// получаем запрос gRPC
+	if err := s.Serve(listen); err != nil {
+		log.Fatal(err)
+	}
 }
 
 // Ping tests connection to db
