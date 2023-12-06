@@ -10,7 +10,7 @@ service MetricServer {
 
 message PushMetricsRequest {
 	string error = 1;
-	repeated Metric metric = 2;
+	repeated Metric metrics = 2;
 }
 message PushMetricsResponse {
 	string error = 1;
@@ -19,6 +19,6 @@ message PushMetricsResponse {
 message Metric {
     string ID = 1;
 	string MType = 2;
-	int64 Delta = 3;
-	double Value = 4;
+	optional int64 Delta = 3;
+	optional double Value = 4;
 }

@@ -4,9 +4,6 @@ package app
 import (
 	"context"
 	"errors"
-	"fmt"
-	"log"
-	"net"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -15,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	pb "github.com/kvvPro/metric-collector/proto"
 	"google.golang.org/grpc"
 
 	"github.com/go-chi/chi/v5"
@@ -67,6 +65,10 @@ type Server struct {
 	wg *sync.WaitGroup
 	// func to cancel ctx in asunc saving
 	cancelSaving context.CancelFunc
+	// implement GRPC server
+	pb.UnimplementedMetricServerServer
+	// GRPC server
+	grpcServer *grpc.Server
 }
 
 const (
@@ -116,6 +118,32 @@ func NewServer(settings *config.ServerFlags) (*Server, error) {
 }
 
 func (srv *Server) StartServer(ctx context.Context, srvFlags *config.ServerFlags) {
+	Sugar.Infoln("before restoring values")
+
+	srv.RestoreValues(ctx)
+
+	Sugar.Infoln("after restoring values")
+
+	// записываем в лог, что сервер запускается
+	Sugar.Infow(
+		"Starting server",
+		"srvFlags", srvFlags,
+	)
+
+	if srv.ExchangeMode == "http" {
+		srv.startHTTPServer()
+	} else if srv.ExchangeMode == "grpc" {
+		srv.startGRPCServer(ctx)
+	} else {
+		Sugar.Fatalf("uknown exchange mode: %v", srv.ExchangeMode)
+	}
+
+	asyncCtx, cancel := context.WithCancel(ctx)
+	srv.cancelSaving = cancel
+	srv.AsyncSaving(asyncCtx)
+}
+
+func (srv *Server) startHTTPServer() {
 	r := chi.NewMux()
 	r.Use(srv.ValidateIP,
 		srv.DecryptMiddleware,
@@ -141,18 +169,6 @@ func (srv *Server) StartServer(ctx context.Context, srvFlags *config.ServerFlags
 	r.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
 	r.Handle("/debug/pprof/block", pprof.Handler("block"))
 
-	Sugar.Infoln("before restoring values")
-
-	srv.RestoreValues(ctx)
-
-	Sugar.Infoln("after restoring values")
-
-	// записываем в лог, что сервер запускается
-	Sugar.Infow(
-		"Starting server",
-		"srvFlags", srvFlags,
-	)
-
 	srv.HTTPServer = &http.Server{
 		Addr:    srv.Address,
 		Handler: r,
@@ -163,10 +179,6 @@ func (srv *Server) StartServer(ctx context.Context, srvFlags *config.ServerFlags
 			Sugar.Fatalw(err.Error(), "event", "start server")
 		}
 	}()
-
-	asyncCtx, cancel := context.WithCancel(ctx)
-	srv.cancelSaving = cancel
-	srv.AsyncSaving(asyncCtx)
 }
 
 func (srv *Server) StopServer(ctx context.Context) {
@@ -188,6 +200,18 @@ func (srv *Server) StopServer(ctx context.Context) {
 	}
 	Sugar.Infoln("Metrics saved")
 
+	if srv.ExchangeMode == "http" {
+		srv.stopHTTPServer(ctx)
+	} else if srv.ExchangeMode == "grpc" {
+		srv.stopGRPCServer(ctx)
+	} else {
+		Sugar.Fatalf("uknown exchange mode: %v", srv.ExchangeMode)
+	}
+
+	srv.StopAsyncSaving()
+}
+
+func (srv *Server) stopHTTPServer(ctx context.Context) {
 	timeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	Sugar.Infoln("Попытка мягко завершить сервер")
@@ -197,26 +221,6 @@ func (srv *Server) StopServer(ctx context.Context) {
 		if err = srv.HTTPServer.Close(); err != nil {
 			Sugar.Errorf("Ошибка при попытке завершить http-сервер: %v", err)
 		}
-	}
-
-	srv.StopAsyncSaving()
-}
-
-func (srv *Server) StartGRPCServer(ctx context.Context) {
-	// определяем порт для сервера
-	listen, err := net.Listen("tcp", ":3200")
-	if err != nil {
-		Sugar.Fatal(err)
-	}
-	// создаём gRPC-сервер без зарегистрированной службы
-	s := grpc.NewServer()
-	// регистрируем сервис
-	//pb.RegisterUsersServer(s, &UsersServer{})
-
-	fmt.Println("Сервер gRPC начал работу")
-	// получаем запрос gRPC
-	if err := s.Serve(listen); err != nil {
-		log.Fatal(err)
 	}
 }
 
