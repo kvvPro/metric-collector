@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"github.com/kvvPro/metric-collector/internal/encrypt"
 	"github.com/kvvPro/metric-collector/internal/hash"
 	mc "github.com/kvvPro/metric-collector/internal/metrics"
+	ip "github.com/kvvPro/metric-collector/internal/net"
 	"go.uber.org/zap"
 )
 
@@ -93,6 +95,32 @@ func WithLogging(h http.Handler) http.Handler {
 		)
 	}
 	return http.HandlerFunc(logFn)
+}
+
+func (srv *Server) ValidateIP(h http.Handler) http.Handler {
+	validateIPFunc := func(w http.ResponseWriter, r *http.Request) {
+
+		if srv.TrustedSubnet != "" {
+			clientIP := r.Header.Get("X-Real-IP")
+			if clientIP == "" {
+				http.Error(w, errors.New("not found client IP").Error(), http.StatusBadRequest)
+				return
+			}
+			trusted, err := ip.CheckIPInSubnet(clientIP, srv.TrustedSubnet)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			if !trusted {
+				http.Error(w, errors.New("client IP not in trusted subnet").Error(), http.StatusBadRequest)
+				return
+			}
+		}
+
+		// передаём управление хендлеру
+		h.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(validateIPFunc)
 }
 
 func (srv *Server) DecryptMiddleware(h http.Handler) http.Handler {

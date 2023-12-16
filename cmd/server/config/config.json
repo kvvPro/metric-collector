@@ -1,5 +1,5 @@
 {
-    "address": "localhost:8080", 
+    "address": "localhost:3200", 
     "restore": true, 
     "store_interval": 5, 
     "store_file": "/tmp/metrics-db.json", 
@@ -7,5 +7,7 @@
     "hash_key": "",
     "mem_profile": "base.pprof",
     "crypto_key": "/workspaces/metric-collector/cmd/keys/key",
+    "trusted_subnet": "192.168.1.0/24",
+    "exchange_mode": "grpc",
     "config": "/workspaces/metric-collector/cmd/server/config/config.json"
 } 

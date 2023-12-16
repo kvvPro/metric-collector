@@ -18,6 +18,7 @@ type ClientFlags struct {
 	RateLimit      int    `env:"RATE_LIMIT" json:"rate_limit"`
 	MemProfile     string `env:"MEM_PROFILE" json:"mem_profile"`
 	CryptoKey      string `env:"CRYPTO_KEY" json:"crypto_key"`
+	ExchangeMode   string `env:"EXCHANGE_MODE" json:"exchange_mode"`
 	Config         string `env:"CONFIG" json:"config"`
 }
 
@@ -35,6 +36,8 @@ func Initialize(agentFlags *ClientFlags) error {
 		"Max count of parallel outbound requests to server")
 	pflag.StringVarP(&agentFlags.MemProfile, "mem", "m", "base.pprof", "Path to file where mem stats will be saved")
 	pflag.StringVarP(&agentFlags.CryptoKey, "crypto-key", "e", "/workspaces/metric-collector/cmd/keys/key.pub", "Path to public key RSA to encrypt messages")
+	pflag.StringVarP(&agentFlags.ExchangeMode, "exchange-mode", "x", "http", "Exchange mode - http or grpc")
+
 	//pflag.StringVarP(&agentFlags.Config, "config", "c", "/workspaces/metric-collector/cmd/agent/config/config.json", "Path to agent config file")
 
 	pflag.Parse()
@@ -47,6 +50,7 @@ func Initialize(agentFlags *ClientFlags) error {
 	fmt.Printf("\nRATE_LIMIT=%v", agentFlags.RateLimit)
 	fmt.Printf("\nMEM_PROFILE=%v", agentFlags.MemProfile)
 	fmt.Printf("\nCRYPTO_KEY=%v", agentFlags.CryptoKey)
+	fmt.Printf("\nEXCHANGE_MODE=%v", agentFlags.ExchangeMode)
 	fmt.Printf("\nCONFIG=%v", agentFlags.Config)
 	fmt.Println()
 
@@ -63,6 +67,7 @@ func Initialize(agentFlags *ClientFlags) error {
 	fmt.Printf("\nRATE_LIMIT=%v", agentFlags.RateLimit)
 	fmt.Printf("\nMEM_PROFILE=%v", agentFlags.MemProfile)
 	fmt.Printf("\nCRYPTO_KEY=%v", agentFlags.CryptoKey)
+	fmt.Printf("\nEXCHANGE_MODE=%v", agentFlags.ExchangeMode)
 	fmt.Printf("\nCONFIG=%v", agentFlags.Config)
 
 	return nil
